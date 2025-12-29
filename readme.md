@@ -1,8 +1,6 @@
 # Data Sources
 
-## Setting Up "data/raw" directory
-
-In order for the code to run we need to have the same folder/file names in "data/raw" for the data downloaded from the same links: 
+Below describes the source, links for downloads, and brief descriptions of the relevant data used in the `data/raw` folder.
 
 Data folder     | Description
 --------------------|------------------------------------------
