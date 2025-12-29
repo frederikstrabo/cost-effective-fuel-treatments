@@ -21,7 +21,7 @@ Identify the set of wildfires that intersect U.S. Forest Service fuel treatments
   Intersects MTBS fire perimeters with FACTS treatment polygons to identify fires that intersect at least one completed fuel treatment up to 10 years prior to ignition.
   
 **Key outputs:**
-- List of fires included in the estimation sample - saved as `FACTS_MTBS_Fire_List.csv` in `data\intermediate` folder
+- List of fires included in the estimation sample - saved as `FACTS_MTBS_Fire_List.csv` in `data/intermediate` folder
 
 These outputs define the core set of fires and treated directions used throughout the remainder of the pipeline.
 
