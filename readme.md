@@ -17,8 +17,7 @@ Data folder     | Description
 `ICS-209`                         |
 `LANDFIRE`                        | Slope, aspect, elevation, mean fire return interval (MFRI), exisiting vegetation type, fire behavior fuel model 40 (FBFM40), canopy cover (CC), canopy height (CH), canopy base height (CBH), and canopy bulk denisty (CBD) for CONUS downloaded from [LANDFIRE](https://www.landfire.gov/data)
 `LAT`                             | LAT drops from USFS. 
-`MTBS`                            | Monitoring Trends in Burn Severity (MTBS) Burn Area Perimeters downloaded from: [USDA Forest Service FSGeodata Clearinghouse - Download National Datasets](https://data.fs.usda.gov/geodata/edw/datasets.php) under "MTBS Burn Area Boundary" (shapefile)
-                                  | Ignition points (Fire Occurrence), and burn severity mosaics downloaded from [MTBS](https://www.mtbs.gov/direct-download).
+`MTBS`                            | Monitoring Trends in Burn Severity (MTBS) Burn Area Perimeters downloaded from: [USDA Forest Service FSGeodata Clearinghouse - Download National Datasets](https://data.fs.usda.gov/geodata/edw/datasets.php) under "MTBS Burn Area Boundary" (shapefile) <br><br>Ignition points (Fire Occurrence), and burn severity mosaics downloaded from [MTBS](https://www.mtbs.gov/direct-download).|
 `PARKS`                           | Any datasets taken from Parks, e.g. "DOBs_from_Parks"
 `PARKS/DOBs_from_Parks`           | "DOBs_from_Parks" dataset
 `QAQC`                            | 
