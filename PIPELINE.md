@@ -50,7 +50,7 @@ Reconstruct the daily progression of each fire in the sample in order to determi
 Assemble fire-level emissions and smoke exposure measures used to quantify air quality damages.
 
 **Key inputs:**
-- Wildland Fire Emissions Inventory System (WFEIS) online calculator: [WFEIS](https://wfeis.mtri.org/calculator) 
+- Wildland Fire Emissions Inventory System (WFEIS) online calculator: [WFEIS, calculator](https://wfeis.mtri.org/calculator) 
 - Smoke exposure estimates from [Wen et al. (2023), public replication code](https://github.com/jeffwen/smoke_linking_public?tab=readme-ov-file)
 
 **Scripts:**
