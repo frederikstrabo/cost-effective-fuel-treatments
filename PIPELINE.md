@@ -61,7 +61,7 @@ Assemble fire-level emissions and smoke exposure measures used to quantify air q
   Uses data and code from Wen et al. (2023) to get population-day weighted PM2.5 smoke exposure estimates for fires in our sample
 
 **Key outputs:**
-- Fire-level CO₂ and PM₂.₅ emissions from WFEIS - saved as `WFEIS_data.csv` in `data/raw/Smoke/WFEI`
+- Fire-level CO₂ and PM₂.₅ emissions from WFEIS - saved as `WFEIS_data.csv` in `data/raw/Smoke/WFEIS`
 - Fire-level smoke exposure and health impact measures - saved as `Smoke_Fire_Effects_Wen2023.csv` saved in `data/intermediate/Wen2023`
 
 ---
