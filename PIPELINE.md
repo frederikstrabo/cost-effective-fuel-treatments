@@ -72,13 +72,13 @@ Assemble fire-level emissions and smoke exposure measures used to quantify air q
 Generate model-based predictions of fire spread behavior used to control for predictable fire dynamics in the empirical analysis.
 
 **Key inputs:**
-- LANDFIRE vegetation and fuels
-- Weather conditions at ignition
+- LANDFIRE vegetation and fuels: FBFM40, CC, CH, CBH, and CBD from LANDFIRE 2001.
+- Weather conditions at ignition: Wind speed and wind direction at day of ignition from gridMET.
 - Fire ignition locations
 
 **Steps:**
 1. Run `code/04_mtt/01_build_mtt_landscapes.R`  
-  Creates landscape files, fire ignition shapefiles, input, and command files to run MTT simulations in FlamMap
+  Creates landscape files, fire ignition shapefiles, and input files for each fire in our analysis to be used in MTT. Command files are created to execute the MTT simulations in FlamMap.
 
 2. Open FlamMap software:
   i) Take fire landscape files from `data/intermediate/MTT_Landscapes` and convert them to .lcp files and save them to `data/intermediate/FB/TestMTT/MTT_Inputs`. Rename them just replacing .tif with .lcp - i.e. save `fire1_landscape.tif` as `fire1_landscape.lcp`.
