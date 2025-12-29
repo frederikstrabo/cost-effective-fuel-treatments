@@ -7,8 +7,8 @@ In order for the code to run we need to have the same folder/file names in "data
 Data folder     | Description
 --------------------|------------------------------------------
 `ACS`                             | American Community Survey (ACS) Census Block Group Housing Data downloaded from: [IPUMS](https://usa.ipums.org/usa/)
-                                  | `ACS\nhgis0003_shape`-shapefiles of 2020 Census Blocks 
-                                  | `ACS\nhgis0003_csv` - csv's of ACS 2013-2017,...,2018-2022 surveys with Median Housing Values in a census block.
+`s`                                 | `ACS\nhgis0003_shape`-shapefiles of 2020 Census Blocks 
+ `s`                                 | `ACS\nhgis0003_csv` - csv's of ACS 2013-2017,...,2018-2022 surveys with Median Housing Values in a census block.
 `CommunitiesRisk`                 | [Wildfire Risk to Communities: Spatial datasets of wildfire risk for populated areas in the United States (2nd Edition](https://www.fs.usda.gov/rds/archive/catalog/RDS-2020-0060-2)
 `FACTS`                           | USFS Fuel Treatment Data downloaded from: [USDA Forest Service FSGeodata Clearinghouse - Download National Datasets](https://data.fs.usda.gov/geodata/edw/datasets.php) under "Hazardous Fuel Treatment Reduction: Polygon" (shapefile) - Rename downloaded folder to "FACTS"
 `FRED`                            | Inflation adjustment data and U.S. elderly population share taken from Federal Reserve Bank of St. Louis (FRED) 
