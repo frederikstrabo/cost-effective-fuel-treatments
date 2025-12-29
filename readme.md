@@ -17,7 +17,7 @@ Data folder     | Description
 `PARKS`                           | Any datasets taken from Parks, e.g. "DOBs_from_Parks"
 `PARKS/DOBs_from_Parks`           | "DOBs_from_Parks" dataset
 `QAQC`                            | 
-`WFEIS`                           | 
+`WFEIS`                           | Fire-level CO₂ and PM₂.₅ emissions from WFEIS. Data is taken from the [WFEIS, calculator](https://wfeis.mtri.org/calculator). See `code/03_smoke/01_download_wfeis_emissions.py` for the script used to automate this task.
 `USFS`                            | USFS National forests `NationalForests`, roads `Roads`, wilderness areas `Wilderness` downloaded from [USDA Forest Service FSGeodata Clearinghouse - Download National Datasets](https://data.fs.usda.gov/geodata/edw/datasets.php) under "Administrative Forest Boundaries",  "National Forest System Roads", and "National Wilderness Areas".  
 `Wen2023`                         | `clean` data folder taken from Wen et al. (2023) replication data. Downloaded from [Dropbox](https://www.dropbox.com/scl/fo/qb71jdvbc2r1zr8x22y6d/AKHgWH7t3MNfXMOc3L8pV3k?rlkey=iftnzzza6w1rqqw9yvnzdzg3w&e=1&dl=0)
 `WUI`                             | Census block WUI polygons from Radeloff et al. (2023). Downloaded from [The 1990-2020 wildland-urban interface of the conterminous United States - geospatial data (4th Edition)](https://www.fs.usda.gov/rds/archive/catalog/RDS-2015-0012-4)
