@@ -15,8 +15,6 @@ The directory structure for the project is as follows.
 Directory                                  | Description
 -------------------------------------------|-----------------------------------------
 `data`              | Data folder with subdirectories `raw`, `intermediate`
-- See `data/data_readme.md` for more details on data sourcing.
 `code`              | All the main R scripts used for data cleaning, data wrangling, analysis, figures, etc.
-- See `code/PIPELINE.md` for more details on the coding workflow.
 `code/functions`    | Any custom R functions
 `output`            | Outputs from our R scripts, such as plots, maps, tables, estimation results etc. are saved in this directory.
