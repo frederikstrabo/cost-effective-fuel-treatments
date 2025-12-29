@@ -18,10 +18,10 @@ Identify the set of wildfires that intersect U.S. Forest Service fuel treatments
 
 **Scripts:**
 - `code/01_sample/01_define_fire_sample_mtbs_facts.R`  
-  Intersects MTBS fire perimeters with FACTS treatment polygons to identify fires that intersect at least one completed fuel treatment prior to ignition.
+  Intersects MTBS fire perimeters with FACTS treatment polygons to identify fires that intersect at least one completed fuel treatment up to 10 years prior to ignition.
   
 **Key outputs:**
-- List of fires included in the estimation sample
+- List of fires included in the estimation sample - saved as `FACTS_MTBS_Fire_List.csv` in "data\intermediate folder
 
 These outputs define the core set of fires and treated directions used throughout the remainder of the pipeline.
 
@@ -58,11 +58,11 @@ Assemble fire-level emissions and smoke exposure measures used to quantify air q
   Downloads and extracts fire-level emissions data from WFEIS.
   
 - `code/03_smoke/02_extract_smoke_exposure_wen2023.R`  
-  Merges fire-level emissions with population-weighted smoke exposure estimates and imputes exposure where necessary.
+  Uses data and code from Wen et al. (2023) to get population-day weighted PM2.5 smoke exposure estimates for fires in our sample
 
 **Key outputs:**
-- Fire-level CO₂ and PM₂.₅ emissions
-- Fire-level smoke exposure and health impact measures
+- Fire-level CO₂ and PM₂.₅ emissions from WFEIS - saved as "WFEIS_data.csv" in "data/raw/Smoke/WFEIS
+- Fire-level smoke exposure and health impact measures - saved as `Smoke_Fire_Effects_Wen2023.csv` saved in `data/intermediate/Wen2023`
 
 ---
 
