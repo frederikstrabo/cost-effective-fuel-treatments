@@ -1,6 +1,6 @@
 # Analysis Workflow
 
-This document describes the end-to-end workflow used to construct the analysis dataset and reproduce the empirical results in *“Wildfire damages and the cost-effective role of forest fuel treatments.”* The pipeline proceeds in sequential stages, beginning with sample definition and raw data ingestion, followed by construction of key fire progression, smoke, and simulation inputs, assembly of the Spatial DiD analysis panel, and finally estimation and robustness analyses.
+This document describes the end-to-end workflow used to construct the analysis dataset and reproduce the empirical results in *“Wildfire damages and the cost-effective role of forest fuel treatments.”* The pipeline proceeds in sequential stages, beginning with sample definition (1), followed by construction of key fire progression (2), smoke (3), MTT simulation (4), construction of the Spatial DiD analysis panel (5), and finally the main analysis (6) and robustness (7) exercises.
 
 Each stage produces well-defined intermediate outputs that are used as inputs to subsequent steps. Scripts are organized into numbered folders reflecting the order in which they should be executed.
 
