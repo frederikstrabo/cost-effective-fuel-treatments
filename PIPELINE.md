@@ -72,7 +72,7 @@ Assemble fire-level emissions and smoke exposure measures used to quantify air q
 Generate model-based predictions of fire spread behavior used to control for predictable fire dynamics in the empirical analysis.
 
 **Key inputs:**
-- LANDFIRE vegetation and fuels: FBFM40, CC, CH, CBH, and CBD from LANDFIRE 2001.
+- LANDFIRE vegetation and fuels: Fire Behavior Fuel Model 40 (FBFM40), Canopy Cover (CC), Canopy Height (CH), Canopy Base Height (CBH), and Canopy Bulk Denisty (CBD) from LANDFIRE 2001.
 - Weather conditions at ignition: Wind speed and wind direction at day of ignition from gridMET.
 - Fire perimeters.
 
