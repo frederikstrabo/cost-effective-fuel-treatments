@@ -74,7 +74,7 @@ Generate model-based predictions of fire spread behavior used to control for pre
 **Key inputs:**
 - LANDFIRE vegetation and fuels: FBFM40, CC, CH, CBH, and CBD from LANDFIRE 2001.
 - Weather conditions at ignition: Wind speed and wind direction at day of ignition from gridMET.
-- Fire ignition locations
+- Fire perimeters.
 
 **Steps:**
 1. Run `code/04_mtt/01_build_mtt_landscapes.R`  
