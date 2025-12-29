@@ -1,5 +1,5 @@
 # Wildfire damages and the cost-effective role of forest fuel treatments
-Repository supporting [Strabo, Bryan & Reimer (2026)](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5337929)
+Repository supporting [Strabo, Bryan, & Reimer (2026)](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5337929)
 
 ## Overview
 
