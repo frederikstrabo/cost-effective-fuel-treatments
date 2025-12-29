@@ -21,7 +21,7 @@ Identify the set of wildfires that intersect U.S. Forest Service fuel treatments
   Intersects MTBS fire perimeters with FACTS treatment polygons to identify fires that intersect at least one completed fuel treatment up to 10 years prior to ignition.
   
 **Key outputs:**
-- List of fires included in the estimation sample - saved as `FACTS_MTBS_Fire_List.csv` in "data\intermediate folder
+- List of fires included in the estimation sample - saved as `FACTS_MTBS_Fire_List.csv` in `data\intermediate` folder
 
 These outputs define the core set of fires and treated directions used throughout the remainder of the pipeline.
 
@@ -50,8 +50,8 @@ Reconstruct the daily progression of each fire in the sample in order to determi
 Assemble fire-level emissions and smoke exposure measures used to quantify air quality damages.
 
 **Key inputs:**
-- Wildland Fire Emissions Inventory System (WFEIS)
-- Smoke exposure estimates from Wen et al. (2023)
+- Wildland Fire Emissions Inventory System (WFEIS) online calculator: [WFEIS](https://wfeis.mtri.org/calculator) 
+- Smoke exposure estimates from [Wen et al. (2023), public replication code](https://github.com/jeffwen/smoke_linking_public?tab=readme-ov-file)
 
 **Scripts:**
 - `code/03_smoke/01_download_wfeis_emissions.py`  
@@ -61,7 +61,7 @@ Assemble fire-level emissions and smoke exposure measures used to quantify air q
   Uses data and code from Wen et al. (2023) to get population-day weighted PM2.5 smoke exposure estimates for fires in our sample
 
 **Key outputs:**
-- Fire-level CO₂ and PM₂.₅ emissions from WFEIS - saved as "WFEIS_data.csv" in "data/raw/Smoke/WFEIS
+- Fire-level CO₂ and PM₂.₅ emissions from WFEIS - saved as `WFEIS_data.csv` in `data/raw/Smoke/WFEI`
 - Fire-level smoke exposure and health impact measures - saved as `Smoke_Fire_Effects_Wen2023.csv` saved in `data/intermediate/Wen2023`
 
 ---
@@ -76,19 +76,19 @@ Generate model-based predictions of fire spread behavior used to control for pre
 - Weather conditions at ignition
 - Fire ignition locations
 
-**Scripts:**
-- `code/04_mtt/01_build_mtt_landscapes.R`  
-  Constructs landscape inputs required for FlamMap Minimum Travel Time (MTT) simulations.
+**Steps:**
+1. Run `code/04_mtt/01_build_mtt_landscapes.R`  
+  Creates landscape files, fire ignition shapefiles, input, and command files to run MTT simulations in FlamMap
+
+2. Open FlamMap software:
+  i) Take fire landscape files from `data/intermediate/MTT_Landscapes` and convert them to .lcp files and save them to `data/intermediate/FB/TestMTT/MTT_Inputs`. Rename them just replacing .tif with .lcp - i.e. save `fire1_landscape.tif` as `fire1_landscape.lcp`.
+  ii) Run the simulations in FlamMap using `simulate.bat` saved in `data/intermediate/FB/TestMTT/MTT_Inputs`.
+  - Outputs from simulations are shapefiles of fire arrival time and intensity:  `fireN_ArrivalTime.shp`, `fireN_INTENSITY` saved in `data/intermediate/FB/TestMTT/MTT_Inputs/MTT_Output`.
   
-- `code/04_mtt/02_run_flammap_mtt.sh`  
-  Executes MTT simulations for fires in the sample.
-  
-- `code/04_mtt/03_process_mtt_outputs.R`  
-  Processes simulation outputs to extract fire arrival times and fireline intensity measures.
 
 **Key outputs:**
-- Plot-level simulated fire arrival times
-- Plot-level fireline intensity measures
+- 150m simulated fire arrival times saved in `data/intermediate/FB/TestMTT/MTT_Inputs/MTT_Output`.
+- 150m simulated fireline intensity saved in `data/intermediate/FB/TestMTT/MTT_Inputs/MTT_Output`.
 
 ---
 
