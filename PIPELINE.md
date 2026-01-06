@@ -12,9 +12,7 @@ Windows users have several options:
 1. Run the pipeline in a Linux environment (recommended), such as Windows Subsystem for Linux (WSL2).
 2. Modify the relevant scripts to replace `mclapply()` with a cross-platform alternative (e.g., `future.apply::future_lapply()` using a multisession plan, or serial execution via `lapply()`).
 
-In addition, the FlamMap / Minimum Travel Time (MTT) simulations (Step 4) require proprietary software and some manual user interaction. To facilitate reproducibility, this repository includes the processed MTT outputs used in the analysis, allowing users to reproduce all main results without rerunning the MTT simulations. Instructions for regenerating MTT outputs are provided for users with access to FlamMap.
-
-The main analysis, estimation, and figure/table generation steps are platform-agnostic provided the required processed datasets are available.
+In addition, the FlamMap / Minimum Travel Time (MTT) simulations (Step 4) require the FlamMap software and some manual user interaction. To facilitate reproducibility, this repository includes the processed MTT outputs used in the analysis, allowing users to reproduce all main results without rerunning the MTT simulations. Instructions for regenerating MTT outputs are provided for users with access to FlamMap.
 
 ## Restricted data and reproducibility notes
 
