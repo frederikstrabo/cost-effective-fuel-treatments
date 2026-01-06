@@ -6,6 +6,25 @@ Each stage produces well-defined intermediate outputs that are used as inputs to
 
 # Overview of the Pipeline
 
+## Platform and software notes
+
+The full preprocessing pipeline has been developed and tested on macOS and Linux. Several steps rely on fork-based parallel processing via `parallel::mclapply()` to speed up large spatial operations; because forking is not supported on Windows, these steps will not run natively on Windows without modification.
+
+Windows users have several options:
+1. Run the pipeline in a Linux environment (recommended), such as Windows Subsystem for Linux (WSL2).
+2. Modify the relevant scripts to replace `mclapply()` with a cross-platform alternative (e.g., `future.apply::future_lapply()` using a multisession plan, or serial execution via `lapply()`).
+
+In addition, the FlamMap / Minimum Travel Time (MTT) simulations (Step 4) require proprietary software and some manual user interaction. To facilitate reproducibility, this repository includes the processed MTT outputs used in the analysis, allowing users to reproduce all main results without rerunning the MTT simulations. Instructions for regenerating MTT outputs are provided for users with access to FlamMap.
+
+The main analysis, estimation, and figure/table generation steps are platform-agnostic provided the required processed datasets are available.
+
+## Restricted data and reproducibility notes
+
+Some specifications in the analysis incorporate information on wildfire suppression effort constructed using U.S. Forest Service large airtanker (LAT) drop location data. These data were provided by the U.S. Forest Service under restricted access and are not publicly distributable, and therefore are not included in this repository.
+
+The LAT data are used to construct plot-level indicators of proximity to aerial suppression effort and to examine heterogeneity in treatment effects by suppression presence. They are not required to reproduce the baseline treatment effect estimates or the main benefit–cost results reported in the paper.
+
+When LAT data are unavailable, the code defaults to specifications that omit these covariates or rely on publicly available suppression proxies. Users with approved access to the LAT data may place the files in `data/restricted/lat_drops/`, in which case the suppression-augmented specifications will be reproduced automatically.
 
 ## Step 1: Define Fire Sample and Treatment Intersections
 
