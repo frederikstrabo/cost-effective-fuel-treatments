@@ -108,11 +108,8 @@ Build the plot-level panel dataset used to estimate the causal effects of fuel t
 - `code/05_panel/01_build_plot_panel.R`  
   Constructs radial plot grids for each fire, merges covariates, and assembles the final analysis-ready panel.
   
-- `code/05_panel/functions_build_spatial_did.R`  
-  Contains helper functions used to construct Spatial DiD plots and merge inputs.
-
-**Key outputs:**
-- Plot-level Spatial DiD panel dataset used in all estimation and robustness analyses
+**Key output:**
+- Baseline plots used in spatial DiD analysis `SpatialDiD_Grids_L24_K05.csv` saved in `data/temp`. Note the panel is finished in `06_analysis/01_descriptive_stats.R` where smoke exposure is imputed for fires without PM2.5 exposure estimates.
 
 ---
 
@@ -122,8 +119,15 @@ Build the plot-level panel dataset used to estimate the causal effects of fuel t
 Estimate treatment effects, quantify avoided damages, and generate all figures and tables reported in the main text.
 
 **Scripts:**
-- Located in `code/06_analysis/`
-- Scripts estimate treatment effects on fire spread and severity, compute cumulative impacts, perform benefit–cost calculations, and generate publication figures and tables.
+- `code/06_analysis/01_descriptive_stats.R`  
+  Create maps and time series used to create Figure 1, impute PM2.5 smoke exposure, and calculate USFS budget imputed footprint cost/acre.
+  - **outputs**:
+    - `SpatialDiD_Grids_L24_K05.csv` - saved in `data/intermediate`.
+    - Figure S10 saved as `Emissions_Exposure_Plot.pdf` stored in `output/figures`.
+    - Figure 1 saved as `Figure1.pdf` stored in `output/figures`.
+   
+- `code/06_analysis/01_download_wfeis_emissions.py`  
+  
 
 ---
 
@@ -135,6 +139,21 @@ Conduct robustness checks and placebo tests reported in the Supplementary Materi
 **Scripts:**
 - Located in `code/07_robustness/`
 - Includes alternative specifications, placebo analyses, matching exercises, and sensitivity checks.
+
+---
+
+
+## Step 8: Create maps (optional)
+
+**Purpose:**  
+Creates maps of fires used to create Figure 2 and Figure S2.
+
+**Scripts:**
+- Located in `code/08_maps/01_create_maps.R`
+Creates maps of fires used to create Figure 2 and Figure S2.
+- **outputs**:
+  - Figure 2 saved as `Figure2.pdf` stored in `output/figures`.
+  - Figure S2 saved as `Fire-FT-Examples.pdf` in `output/figures`.
 
 ---
 
