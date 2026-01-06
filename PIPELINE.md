@@ -4,8 +4,6 @@ This document describes the end-to-end workflow used to construct the analysis d
 
 Each stage produces well-defined intermediate outputs that are used as inputs to subsequent steps. Scripts are organized into numbered folders reflecting the order in which they should be executed.
 
-# Overview of the Pipeline
-
 ## Platform and software notes
 
 The full preprocessing pipeline has been developed and tested on macOS and Linux. Several steps rely on fork-based parallel processing via `parallel::mclapply()` to speed up large spatial operations; because forking is not supported on Windows, these steps will not run natively on Windows without modification.
@@ -25,6 +23,11 @@ Some specifications in the analysis incorporate information on wildfire suppress
 The LAT data are used to construct plot-level indicators of proximity to aerial suppression effort and to examine heterogeneity in treatment effects by suppression presence. They are not required to reproduce the baseline treatment effect estimates or the main benefit–cost results reported in the paper.
 
 When LAT data are unavailable, the code defaults to specifications that omit these covariates or rely on publicly available suppression proxies. Users with approved access to the LAT data may place the files in `data/restricted/lat_drops/`, in which case the suppression-augmented specifications will be reproduced automatically.
+
+---
+
+# Overview of the Pipeline
+
 
 ## Step 1: Define Fire Sample and Treatment Intersections
 
