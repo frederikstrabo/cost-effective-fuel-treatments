@@ -20,7 +20,7 @@ Some specifications in the analysis incorporate information on wildfire suppress
 
 The LAT data are used to construct plot-level indicators of proximity to aerial suppression effort and to examine heterogeneity in treatment effects by suppression presence. They are not required to reproduce the baseline treatment effect estimates or the main benefit–cost results reported in the paper.
 
-When LAT data are unavailable, the code defaults to specifications that omit these covariates or rely on publicly available suppression proxies. Users with approved access to the LAT data may place the files in `data/restricted/lat_drops/`, in which case the suppression-augmented specifications will be reproduced automatically.
+When LAT data are unavailable, the code defaults to specifications that omit these covariates or rely on publicly available suppression proxies. Users with approved access to the LAT data may place the files in `data/raw/LAT/`, in which case the suppression-augmented specifications will be reproduced automatically.
 
 ---
 
