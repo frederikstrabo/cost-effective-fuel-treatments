@@ -1,21 +1,23 @@
-# Wildfire damages and the cost-effective role of forest fuel treatments
-Repository supporting [Strabo, Bryan, & Reimer (2026)](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5337929)
+# Data Sources
 
-## Overview
+Below describes the source, links for downloads, and brief descriptions of the relevant data used in the `data/raw` folder.
 
-This study integrates high-resolution spatial data on wildfires, fuel treatments, suppression effort, and economic damages across the western United States to estimate the causal effects and cost-effectiveness of forest fuel treatments. Using a quasi-experimental research design that exploits variation in the direction and distance at which fires encounter treatments, the analysis quantifies how fuel treatments reduce wildfire spread, burn severity, and downstream economics damages, including structure loss, CO₂ emissions, and PM₂.₅ exposure. The code in this repository implements the full workflow from raw data ingestion and processing through statistical estimation and figure generation. Due to size and licensing constraints the raw input datasets are not stored directly in this repository; instead, detailed instructions are provided for obtaining the required data in `/data/data_readme.md` with the provided code reconstructing all intermediate analysis files.
-
-- A detailed description of the analysis workflow and the role of each script is provided in `code/PIPELINE.md`.
-- A detailed description of the data raw data directory is provided in `data/data_readme.md`.
-
-
-
-## Directory Structure
-The directory structure for the project is as follows.
-
-Directory                                  | Description
--------------------------------------------|-----------------------------------------
-`data`              | Data folder with subdirectories `raw`, `intermediate`
-`code`              | All the main R scripts used for data cleaning, data wrangling, analysis, figures, etc.
-`code/functions`    | Any custom R functions
-`output`            | Outputs from our R scripts, such as plots, maps, tables, estimation results etc. are saved in this directory.
+Data folder     | Description
+--------------------|------------------------------------------
+`ACS`                             | American Community Survey (ACS) Census Block Group Housing Data downloaded from: [IPUMS](https://usa.ipums.org/usa/) <br><br>`ACS/nhgis0003_shape/` — shapefiles of 2020 Census blocks<br>`ACS/nhgis0003_csv/` — CSVs of ACS 2013–2017, …, 2018–2022 surveys with median housing values in a census block. |
+`CommunitiesRisk`                 | Building and housing counts for CONUS taken from Jaffe, et al. (2024). Downloaded from: [Wildfire Risk to Communities: Spatial datasets of wildfire risk for populated areas in the United States (2nd Edition)](https://www.fs.usda.gov/rds/archive/catalog/RDS-2020-0060-2).
+`FACTS`                           | USFS Fuel Treatment Data downloaded from: [USDA Forest Service FSGeodata Clearinghouse - Download National Datasets](https://data.fs.usda.gov/geodata/edw/datasets.php) under "Hazardous Fuel Treatment Reduction: Polygon" (shapefile). 
+`FRED`                            | Inflation adjustment data and U.S. elderly population share taken from Federal Reserve Bank of St. Louis (FRED). <br><br>`CPIAUCSL.csv` yearly consumer index for inflation adjustment downloaded from [FRED](https://fred.stlouisfed.org/series/CPIAUCSL) and `SPPOP65UPTOZSUSA.csv` yearly population ages 65 and above in U.S. downloaded from [FRED](https://fred.stlouisfed.org/series/SPPOP65UPTOZSUSA)|.
+`gridMET`                         | Gridded Surface Meteorological dataset (gridMET). Yearly energy Release Component (erc), 1000 hour fuel moisture (fm1000), wind speed (vs), and wind direction (th) downloaded from [gridMET](https://www.northwestknowledge.net/metdata/data/).
+`Highways`                        | Shapefile of U.S. Highways from the U.S. Census Bureau downloaded from [TIGER/Line Shapefile, 2016, nation, U.S., Primary Roads National Shapefile](https://catalog.data.gov/dataset/tiger-line-shapefile-2016-nation-u-s-primary-roads-national-shapefile).
+`ICS-209`                         | Fire level suppression cost data used to make Figure 1, C). Taken from St. Denis et al. (2022) [All-hazards dataset mined from the US National Incident Management System 1999–2020](https://www.nature.com/articles/s41597-023-01955-0), downloaded from [figshare](https://figshare.com/articles/dataset/All-hazards_dataset_mined_from_the_US_National_Incident_Management_System_1999-2020/19858927).
+`LANDFIRE`                        | Slope, aspect, elevation, mean fire return interval (MFRI), exisiting vegetation type, fire behavior fuel model 40 (FBFM40), canopy cover (CC), canopy height (CH), canopy base height (CBH), and canopy bulk denisty (CBD) for CONUS downloaded from [LANDFIRE](https://www.landfire.gov/data).
+`LAT`                             |  
+`MTBS`                            | Monitoring Trends in Burn Severity (MTBS) Burn Area Perimeters downloaded from: [USDA Forest Service FSGeodata Clearinghouse - Download National Datasets](https://data.fs.usda.gov/geodata/edw/datasets.php) under "MTBS Burn Area Boundary" (shapefile). <br><br>Ignition points (Fire Occurrence), and burn severity mosaics downloaded from [MTBS](https://www.mtbs.gov/direct-download).|
+`PARKS`                           | Any datasets taken from Parks, e.g. "DOBs_from_Parks"
+`PARKS/DOBs_from_Parks`           | "DOBs_from_Parks" dataset
+`QAQC`                            | 
+`WFEIS`                           | Fire-level CO₂ and PM₂.₅ emissions from WFEIS. Data is taken from the [WFEIS, calculator].(https://wfeis.mtri.org/calculator). See `code/03_smoke/01_download_wfeis_emissions.py` for the script used to automate this task.
+`USFS`                            | USFS National forests `NationalForests`, roads `Roads`, wilderness areas `Wilderness` shapefiles downloaded from [USDA Forest Service FSGeodata Clearinghouse - Download National Datasets](https://data.fs.usda.gov/geodata/edw/datasets.php) under "Administrative Forest Boundaries",  "National Forest System Roads", and "National Wilderness Areas".<br><br>`USFS_Budget_Hoover.pdf` is the .pdf from [Hoover et al. (2020)](https://www.congress.gov/crs-product/R46583) which has yearly USFS budget allocations to fuels management from 2011-2020. `USFS_Budget_Hoover.csv` is Table A-1 converted into .csv format.|
+`Wen2023`                         | `clean` data folder taken from Wen et al. (2023) replication data. Downloaded from [Dropbox](https://www.dropbox.com/scl/fo/qb71jdvbc2r1zr8x22y6d/AKHgWH7t3MNfXMOc3L8pV3k?rlkey=iftnzzza6w1rqqw9yvnzdzg3w&e=1&dl=0).
+`WUI`                             | Census block WUI polygons from Radeloff et al. (2023). Downloaded from [The 1990-2020 wildland-urban interface of the conterminous United States - geospatial data (4th Edition)](https://www.fs.usda.gov/rds/archive/catalog/RDS-2015-0012-4).
