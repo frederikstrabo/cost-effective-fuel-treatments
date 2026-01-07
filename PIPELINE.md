@@ -102,13 +102,13 @@ Generate model-based predictions of fire spread behavior used to control for pre
 
 2. Open FlamMap software:
   i) Take fire landscape files from `data/intermediate/MTT_Landscapes` and convert them to .lcp files and save them to `data/intermediate/FB/TestMTT/MTT_Inputs`. Rename them just replacing .tif with .lcp - i.e. save `fire1_landscape.tif` as `fire1_landscape.lcp`.
-  ii) Run the simulations in FlamMap using `simulate.bat` saved in `data/intermediate/FB/TestMTT/MTT_Inputs`.
-  - Outputs from simulations are shapefiles of fire arrival time and intensity:  `fireN_ArrivalTime.shp`, `fireN_INTENSITY` saved in `data/intermediate/FB/TestMTT/MTT_Inputs/MTT_Output`.
+  ii) Run the simulations in FlamMap using `simulate.bat` saved in `data/raw/FB/TestMTT/MTT_Inputs`.
+  - Outputs from simulations are shapefiles of fire arrival time and intensity:  `fireN_ArrivalTime.shp`, `fireN_INTENSITY` saved in `data/raw/FB/TestMTT/MTT_Inputs/MTT_Output`.
   
 
 **Key outputs:**
-- 150m simulated fire arrival times saved in `data/intermediate/FB/TestMTT/MTT_Inputs/MTT_Output`.
-- 150m simulated fireline intensity saved in `data/intermediate/FB/TestMTT/MTT_Inputs/MTT_Output`.
+- 150m shapefiles of simulated fire arrival times saved in `data/raw/FB/TestMTT/MTT_Inputs/MTT_Output`.
+- 150m shapefiles of simulated fireline intensity saved in `data/raw/FB/TestMTT/MTT_Inputs/MTT_Output`.
 
 ---
 
