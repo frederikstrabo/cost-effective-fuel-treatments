@@ -4,6 +4,8 @@
 
 ################# Output: "FACTS_MTBS_Fire_List.csv" - saved in data\intermediate
 
+################# Estimated run time: ~25 minutes 
+
 rm(list=ls())
 
 if (!require("pacman")) install.packages("pacman")
@@ -12,20 +14,19 @@ pacman::p_load(dplyr,sf, tmap, magrittr, rnaturalearth, rnaturalearthdata, ggplo
 
 
 # Set Path
-here::i_am("code/MTBS_FACTS_Fires.R")
+here::i_am("code/01_sample/01_define_fire_sample_mtbs_facts.R")
 st_erase = function(x, y) st_difference(x, st_make_valid(st_union(st_combine(y)))) # Taken from here https://r-spatial.github.io/sf/reference/geos_binary_ops.html
 
 # Load Functions 
 
 source(here("code", "functions","tidy_facts.R"))
 
-
 ########    Load in Datasets    ########
 
 #### FACTS - Forest Service Fuel Treatments
 
 facts <- st_read(here("data", "raw", "FACTS", "S_USA.Activity_HazFuelTrt_PL.shp"))
-facts <- tidy_facts(facts, inf_yr = 2020, crs = 5070)
+facts <- tidy_facts(facts, inf_yr = 2023, crs = 5070)
 
 # distinguish completed & incomplete projects
 facts_comp <- filter(facts, COMPLETE == 1)
