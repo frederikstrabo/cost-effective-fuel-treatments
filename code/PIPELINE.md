@@ -54,7 +54,7 @@ Reconstruct the daily progression of each fire in the sample in order to determi
 - List of fires included in the estimation sample - `FACTS_MTBS_Fire_List.csv`.
 
 **Scripts:**
-- `code/02_fire_progression/01_build_day_of_burning_surfaces.R`  
+- `code/02_fire_progression/01_dob_interpolation.R`  
   - Constructs interpolated daily burn surfaces for each fire in the sample.
   - **output**: folder of day of burning rasters called `Jan2025_DOB_fires` saved in `data/raw/PARKS`.
   - Estimated run time: 21 hours
