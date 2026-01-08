@@ -59,6 +59,11 @@ Reconstruct the daily progression of each fire in the sample in order to determi
   - **output**: folder of day of burning rasters called `Jan2025_DOB_fires` saved in `data/raw/PARKS`.
   - Estimated run time: 21 hours
 
+- `code/02_fire_progression/02_parks_facts_list.R`  
+  - Creates a list of all the daily of burning fire perimeter rasters used in our sample. This list is used as input when we build our plot panels in `01_build_plot_panel.R`.
+  - **output**: `FACTS_Parks_Fire_List.csv` saved in `data/intermediate`.
+  - Estimated run time: ~1 hour and 40 minutes. 
+
 ---
 
 ## Step 3: Smoke Exposure and Emissions Data
@@ -77,9 +82,9 @@ Assemble fire-level emissions and smoke exposure measures used to quantify air q
   - Estimated run time: **fill in.**
   
 - `code/03_smoke/02_extract_smoke_exposure_wen2023.R`  
-  - Uses data and code from Wen et al. (2023) to get population-day weighted PM2.5 smoke exposure estimates for fires in our sample.
-  - **output**: Fire-level smoke exposure and health impact measures - saved as `Smoke_Fire_Effects_Wen2023.csv` saved in `data/intermediate/Wen2023`.
-  - Estimated run time: **fill in.**
+  - Uses data and code from Wen et al. (2023) to get population-day weighted PM₂.₅ smoke exposure estimates for fires in our sample.
+  - **output**: Fire-level smoke exposure and health damage measures - saved as `Smoke_Fire_Effects_Wen2023.csv` saved in `data/intermediate/Wen2023`.
+  - Estimated run time: ~5 minutes.
 
 ---
 
@@ -119,16 +124,16 @@ Build the plot-level panel dataset used to estimate the causal effects of fuel t
 **Key inputs:**
 - Fire progression & perimeter data.
 - Fuel treatment data.
-- Smoke and emissions data.
+- PM₂.₅ smoke exposure and CO₂ emissions data.
 - MTT simulation outputs.
 - Weather, topography, suppression effort, and infrastructure covariates.
 
 **Scripts:**
 - `code/05_panel/01_build_plot_panel.R`  
-  Constructs radial plot grids for each fire, merges covariates, and assembles the final analysis-ready panel.
-  
-**Key output:**
-- Baseline plots used in spatial DiD analysis `SpatialDiD_Grids_L24_K05.csv` saved in `data/temp`. Note the panel is finished in `06_analysis/01_descriptive_stats.R` where smoke exposure is imputed for fires without PM2.5 exposure estimates.
+  - For each fire in our sample we constructs plots used in our sample which are defined by their unique direction and distance from the fires ignition point. For each plot we calculate their associated wildfire outcomes, treatment status, and relevant control covariates to be used in our spatial DiD analysis. The script develops the function, "create_SpatialDiD_Grids", which allows flexibility to change the number of radial directions = L, the distance of each plot = K, which will be tested in "07_robustness".
+  - **output**: The baseline plots used in spatial DiD analysis `SpatialDiD_Grids_L24_K05.csv` saved in `data/temp`. Note the panel is finished in `06_analysis/01_descriptive_stats.R` where smoke exposure is imputed for fires without PM₂.₅ exposure estimates.
+  - Optional **outputs**: Different direction panels: `"SpatialDiD_Grids_L36_K05.csv`, `"SpatialDiD_Grids_L18_K05.csv`, and `SpatialDiD_Grids_L12_K05.csv`, reported ignition points: `SpatialDiD_Grids_L24_K05_V2.csv`, and alternative treatment thresholds: `SpatialDiD_Grids_L24_K05_100p.csv`, `SpatialDiD_Grids_L24_K05_75p.csv`, `SpatialDiD_Grids_L24_K05_25p.csv`, `SpatialDiD_Grids_L24_K05_zero.csv` all of which are saved to `data/intermediate`.
+  - Estimated run time: ~X hours for baseline plots and ~Y hours with the inclusion of all alternative plots used to test robustness.
 
 ---
 
