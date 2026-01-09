@@ -24,8 +24,8 @@ When LAT data are unavailable, the code defaults to specifications that omit the
 
 ---
 
-# Overview of the Pipeline
 
+# Overview of the Pipeline
 
 ## Step 1: Define Fire Sample and Treatment Intersections
 
@@ -152,7 +152,17 @@ Estimate treatment effects, quantify avoided damages, and generate all figures a
     - Figure 1 saved as `Figure1.pdf` stored in `output/figures`.
    
 - `code/06_analysis/02_conditional_effects.R`.
-- `code/06_analysis/03_cumulative_effects.R`.  
+  -  Run the baseline spatial DiD regressions, create event study plots, and heterogeneity analysis.
+  -  **outputs**:
+    - Figure 3 saved as `Figure3.pdf` saved in `output/figures`.
+    - Figure 5 saved as `Figure5.pdf` saved in `output/figures`.
+    - Figure S5 saved as `HeterogeneityBurnSeverity.pdf` saved in `output/figures`.
+    - Figure S7 saved as `EventWindows.pdf` saved in `output/figures`.
+    - Table S1 saved as `SpatialDiDBaseline.tex` saved in `output/tables`.
+  - Estimated run time: ~2 min.
+      
+- `code/06_analysis/03_cumulative_effects.R`.
+  -   
   
 
 ---
