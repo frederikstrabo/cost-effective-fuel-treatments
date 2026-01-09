@@ -1,6 +1,6 @@
 # Analysis Workflow
 
-This document describes the end-to-end workflow used to construct the analysis dataset and reproduce the empirical results in *“Wildfire damages and the cost-effective role of forest fuel treatments.”* The pipeline proceeds in sequential stages, beginning with sample definition (1), followed by construction of daily fire progression (2), smoke (3), MTT simulation (4), construction of the Spatial DiD analysis panel (5), and finally the main analysis (6) and robustness (7) exercises.
+This document describes the end-to-end workflow used to construct the analysis dataset and reproduce the empirical results in *“Wildfire damages and the cost-effective role of forest fuel treatments.”* The pipeline proceeds in sequential stages, beginning with sample definition (1), followed by construction of daily fire progressions (2), smoke impacts (3), MTT simulations (4), construction of the spatial DiD analysis panel (5), the main analysis (6), robustness (7) exercises, and creation of maps (8).
 
 Each stage produces well-defined intermediate outputs that are used as inputs to subsequent steps. Scripts are organized into numbered folders reflecting the order in which they should be executed.
 
@@ -162,7 +162,17 @@ Estimate treatment effects, quantify avoided damages, and generate all figures a
   - Estimated run time: ~2 min.
       
 - `code/06_analysis/03_cumulative_effects.R`.
-  -   
+  -   Conduct the cumulative effects (i.e. "survival analysis", Figure 4), calculate conditional treatment benefits (Table 1, A & B) , and conduct the ex-ante benefit cost ratio (BCR) analysis (Table 1 C).
+  -   **outputs**:
+    - Figure 4 saved as `Figure4.pdf` saved in `output/figures`.
+    - Figure S1 saved as `Survival_Difference.pdf` saved in `output/figures`.
+    - Figure S3  saved as `EventStudy_Survival_High_Ordinal_BS.pdf` saved in `output/figures`.
+    - Tables 1 A), B) & C) saved as `PhysicalBenefits.tex`, `EconomicBenefits.tex`, and `ExAnteBCRs.tex` saved in `output/tables`.
+    - Table S9 saved as `BenefitCostRatios.tex` saved in `output/tables`.
+    - Figure S6 saved as `TreatmentInteractionSurvival.pdf` saved in `output/figures`.
+    - Figure S4 saved as `SurvivalSizeHeterogeneity.pdf` saved in `output/figures`.
+    - `BCR_Robustness.csv`  saved in `data/temp`.      
+  -   Estimated run time: ~
   
 
 ---
