@@ -106,7 +106,7 @@ Generate model-based predictions of fire spread behavior used to control for pre
     - fire ignition shapefiles saved in `data/raw/FB/TestMTT/MTT_Inputs`.
     - fire .input files saved in `data/raw/FB/TestMTT/MTT_Inputs`.
     - `simulateCMD.txt` and `simulate.bat` saved in `data/raw/FB/TestMTT/MTT_Inputs`.
-  - Estimated run time: ~ 
+  - Estimated run time: ~45 mins.
 
 2. Open FlamMap software:
     - Take fire landscape files from `data/raw/MTT_Landscapes` and convert them to .lcp files and save them to `data/raw/FB/TestMTT/MTT_Inputs`. Rename them just replacing .tif with .lcp - i.e. save `fire1_landscape.tif` as `fire1_landscape.lcp`.
@@ -145,13 +145,14 @@ Estimate treatment effects, quantify avoided damages, and generate all figures a
 
 **Scripts:**
 - `code/06_analysis/01_descriptive_stats.R`  
-  Create maps and time series used to create Figure 1, impute PM2.5 smoke exposure, and calculate USFS budget imputed footprint cost/acre.
+  - Create maps and time series used to create Figure 1, impute PM2.5 smoke exposure, and calculate USFS budget imputed footprint cost/acre.
   - **outputs**:
     - `SpatialDiD_Grids_L24_K05.csv` - saved in `data/intermediate`.
     - Figure S10 saved as `Emissions_Exposure_Plot.pdf` stored in `output/figures`.
     - Figure 1 saved as `Figure1.pdf` stored in `output/figures`.
    
-- `code/06_analysis/01_download_wfeis_emissions.py`  
+- `code/06_analysis/02_conditional_effects.R`.
+- `code/06_analysis/03_cumulative_effects.R`.  
   
 
 ---
