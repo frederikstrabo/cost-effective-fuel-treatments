@@ -172,7 +172,7 @@ Estimate treatment effects, quantify avoided damages, and generate all figures a
     - Figure S6 saved as `TreatmentInteractionSurvival.pdf` saved in `output/figures`.
     - Figure S4 saved as `SurvivalSizeHeterogeneity.pdf` saved in `output/figures`.
     - `BCR_Robustness.csv`  saved in `data/temp`.      
-  -   Estimated run time: ~
+  -   Estimated run time: ~45 min.
   
 
 ---
@@ -196,10 +196,11 @@ Creates maps of fires used to create Figure 2 and Figure S2.
 
 **Scripts:**
 - Located in `code/08_maps/01_create_maps.R`
-Creates maps of fires used to create Figure 2 and Figure S2.
-- **outputs**:
-  - Figure 2 saved as `Figure2.pdf` stored in `output/figures`.
-  - Figure S2 saved as `Fire-FT-Examples.pdf` in `output/figures`.
+  - Creates maps of fires and plots used to create Figure 2 and Figure S2.
+  - **outputs**:
+    - Figure 2 saved as `Figure2.pdf` stored in `output/figures`.
+    - Figure S2 saved as `Fire-FT-Examples.pdf` in `output/figures`.
+  - Estimated run time: ~
 
 ---
 
