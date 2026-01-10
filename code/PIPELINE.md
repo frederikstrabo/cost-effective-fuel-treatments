@@ -184,14 +184,34 @@ Conduct robustness checks and placebo tests reported in the Supplementary Materi
 
 **Scripts:**
 - Located in `code/07_robustness/`
-- `code/07_analysis/01_cumulative_effects_yet_to_be_treated.R`.
+- `code/07_robustness/01_cumulative_effects_yet_to_be_treated.R`.
   -   Re-run the survival and BCR analysis using the "yet-to-be treated" control specification.
   -   **output**: `BCR_Robustness_up.csv`  saved in `data/temp`.
   -   Estimated run time: ~20 min.
-- `code/07_analysis/02_cumulative_effects_matching.R`.
+- `code/07_robustness/02_cumulative_effects_matching.R`.
   -   Re-run the survival and BCR analysis using the matched control specification.
   -   **output**: Table S10 saved as `RobustnessBCR.tex` saved in `output/tables`.
   -   Estimated run time: ~22 min.
+
+- `code/07_robustness/03_build_incomplete_panel.R`.
+  -   X
+  -   **output**: 
+  -   Estimated run time: ~X min.
+
+- `code/07_robustness/04_conditional_effects_robustness.R`.
+  -   Run robustness checks on the conditional effects spatial DiD regressions reported in supplemental appendix.
+  -   **outputs**:
+    - Figure S8 saved as "IncompletePlacebo.pdf" stored in "output/figures".
+    - Figure S9 saved as "MatchingDiD.pdf" in "output/figures".
+    - Figure S9 saved as "MatchingDiD.pdf" in "output/figures".
+    -  Table S3 saved as "SpatialDiDRobustDirections.tex" in "output/tables".
+    -  Table S2 saved as "SpatialDiDRobustParallelTrends.tex" in "output/tables".
+    -  Table S2 saved as "SpatialDiDRobustEstimators.tex" in "output/tables".
+    -  Table S5 saved as "SpatialDiDSamples.tex" in "output/tables".
+    -  Table S7 saved as "SpatialDiDRobustTreatmentThresholds.tex" in "output/tables".
+    -  Table S4 saved as "SpatialDiDSupControls.tex" in "output/tables".
+    -  Table S8 saved as "SpatialDiDRobustEventWindow.tex" in "output/tables".
+  -   Estimated run time: ~X min.
 
 ---
 
