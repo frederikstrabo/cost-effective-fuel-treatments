@@ -184,7 +184,14 @@ Conduct robustness checks and placebo tests reported in the Supplementary Materi
 
 **Scripts:**
 - Located in `code/07_robustness/`
-- Includes alternative specifications, placebo analyses, matching exercises, and sensitivity checks.
+- `code/07_analysis/01_cumulative_effects_yet_to_be_treated.R`.
+  -   Re-run the survival and BCR analysis using the "yet-to-be treated" control specification.
+  -   **output**: `BCR_Robustness_up.csv`  saved in `data/temp`.
+  -   Estimated run time: ~20 min.
+- `code/07_analysis/02_cumulative_effects_matching.R`.
+  -   Re-run the survival and BCR analysis using the matched control specification.
+  -   **output**: Table S10 saved as `RobustnessBCR.tex` saved in `output/tables`.
+  -   Estimated run time: ~20 min.
 
 ---
 
