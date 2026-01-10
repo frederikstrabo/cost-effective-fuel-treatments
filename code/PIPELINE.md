@@ -191,7 +191,7 @@ Conduct robustness checks and placebo tests reported in the Supplementary Materi
 - `code/07_analysis/02_cumulative_effects_matching.R`.
   -   Re-run the survival and BCR analysis using the matched control specification.
   -   **output**: Table S10 saved as `RobustnessBCR.tex` saved in `output/tables`.
-  -   Estimated run time: ~20 min.
+  -   Estimated run time: ~22 min.
 
 ---
 
@@ -207,7 +207,7 @@ Creates maps of fires used to create Figure 2 and Figure S2.
   - **outputs**:
     - Figure 2 saved as `Figure2.pdf` stored in `output/figures`.
     - Figure S2 saved as `Fire-FT-Examples.pdf` in `output/figures`.
-  - Estimated run time: ~
+  - Estimated run time: ~ 10 min.
 
 ---
 
