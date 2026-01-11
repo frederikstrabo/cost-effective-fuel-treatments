@@ -16,11 +16,9 @@ In addition, the FlamMap / Minimum Travel Time (MTT) simulations (Step 4) requir
 
 ## Restricted data and reproducibility notes
 
-Some specifications in the analysis incorporate information on wildfire suppression effort constructed using U.S. Forest Service large airtanker (LAT) drop location data. These data were provided by the U.S. Forest Service under restricted access and are not publicly distributable, and therefore are not included in this repository.
+Some specifications in the analysis incorporate information on wildfire suppression effort constructed using U.S. Forest Service large airtanker (LAT) drop location data. These data were provided by the U.S. Forest Service under restricted access and are not publicly distributable, and therefore are not included in this repository. Users with approved access to the LAT data may place the files in `data/raw/LAT/`, in which case the suppression-augmented specifications will be reproduced automatically.
 
-The LAT data are used to construct plot-level indicators of proximity to aerial suppression effort and to examine heterogeneity in treatment effects by suppression presence. They are not required to reproduce the baseline treatment effect estimates or the main benefit–cost results reported in the paper.
-
-When LAT data are unavailable, the code defaults to specifications that omit these covariates or rely on publicly available suppression proxies. Users with approved access to the LAT data may place the files in `data/raw/LAT/`, in which case the suppression-augmented specifications will be reproduced automatically.
+The LAT data are used to construct plot-level indicators of proximity to aerial suppression effort and to examine heterogeneity in treatment effects by suppression presence. The baseline treatment effect estimates are similar without the inclusion of these controls and the user can reproduce the baseline results using the cleaned dataset.
 
 ---
 
@@ -57,7 +55,7 @@ Reconstruct the daily progression of each fire in the sample in order to determi
 - `code/02_fire_progression/01_dob_interpolation.R`  
   - Constructs interpolated daily burn surfaces for each fire in the sample.
   - **output**: folder of day of burning rasters called `Jan2025_DOB_fires` saved in `data/raw/PARKS`.
-  - Estimated run time: 21 hours
+  - Estimated run time: 21 hours.
 
 - `code/02_fire_progression/02_parks_facts_list.R`  
   - Creates a list of all the daily of burning fire perimeter rasters used in our sample. This list is used as input when we build our plot panels in `01_build_plot_panel.R`.
@@ -233,4 +231,4 @@ Creates maps of fires used to create Figure 2 and Figure S2.
 
 ## Notes on Reproducibility
 
-Due to the size of several datasets and external software requirements (e.g., FlamMap), some intermediate files may be generated locally and are not stored in the GitHub repository. Detailed data access instructions are provided in `data/README.md`. Users with access to all required inputs should be able to reproduce all figures and tables by executing the scripts in the order described above.
+Due to the size of several datasets and external software requirements (e.g., FlamMap), some intermediate files may be generated locally and are not stored in the GitHub repository. Detailed data access instructions are provided in `data/readme.md`. Users with access to all required inputs should be able to reproduce all figures and tables by executing the scripts in the order described above.
