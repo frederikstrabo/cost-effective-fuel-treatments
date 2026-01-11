@@ -76,8 +76,8 @@ Assemble fire-level emissions and smoke exposure measures used to quantify air q
 **Scripts:**
 - `code/03_smoke/01_download_wfeis_emissions.py`  
   - Downloads and extracts fire-level emissions data from WFEIS.
-  - **output**: Fire-level CO₂ and PM₂.₅ emissions from WFEIS - saved as `WFEIS_data.csv` in `data/raw/Smoke/WFEIS`.
-  - Estimated run time: **fill in.**
+  - **output**: Fire-level CO₂ and PM₂.₅ emissions from WFEIS - saved as `WFEIS_data.csv` in `data/raw/WFEIS`.
+  - Estimated run time: ~3 hours.
   
 - `code/03_smoke/02_extract_smoke_exposure_wen2023.R`  
   - Uses data and code from Wen et al. (2023) to get population-day weighted PM₂.₅ smoke exposure estimates for fires in our sample.
