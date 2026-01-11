@@ -192,23 +192,23 @@ Conduct robustness checks and placebo tests reported in the Supplementary Materi
   -   Estimated run time: ~22 min.
 
 - `code/07_robustness/03_build_incomplete_panel.R`.
-  -   X
-  -   **output**: 
+  -   Using the similar code from `05_panel/01_build_plot_panel.R`, create a panel of plots using only incomplete fuel treatment projects for a placebo test. Code is not exactly the same as `05_panel/01_build_plot_panel.R"`to avoid unnecessary computation.
+  -   **output**: `SpatialDiD_Grids_24L_K05_Incomp.csv` saved in `data/intermediate`.
   -   Estimated run time: ~X min.
 
 - `code/07_robustness/04_conditional_effects_robustness.R`.
   -   Run robustness checks on the conditional effects spatial DiD regressions reported in supplemental appendix.
   -   **outputs**:
-    - Figure S8 saved as "IncompletePlacebo.pdf" stored in "output/figures".
-    - Figure S9 saved as "MatchingDiD.pdf" in "output/figures".
-    - Figure S9 saved as "MatchingDiD.pdf" in "output/figures".
-    -  Table S3 saved as "SpatialDiDRobustDirections.tex" in "output/tables".
-    -  Table S2 saved as "SpatialDiDRobustParallelTrends.tex" in "output/tables".
-    -  Table S2 saved as "SpatialDiDRobustEstimators.tex" in "output/tables".
-    -  Table S5 saved as "SpatialDiDSamples.tex" in "output/tables".
-    -  Table S7 saved as "SpatialDiDRobustTreatmentThresholds.tex" in "output/tables".
-    -  Table S4 saved as "SpatialDiDSupControls.tex" in "output/tables".
-    -  Table S8 saved as "SpatialDiDRobustEventWindow.tex" in "output/tables".
+    - Figure S8 saved as `IncompletePlacebo.pdf` stored in `output/figures`.
+    - Figure S9 saved as `MatchingDiD.pdf` in `output/figures`.
+    - Figure S9 saved as `MatchingDiD.pdf` in `output/figures`.
+    -  Table S3 saved as `SpatialDiDRobustDirections.tex` in `output/tables`.
+    -  Table S2 saved as `SpatialDiDRobustParallelTrends.tex` in `output/tables`.
+    -  Table S2 saved as `SpatialDiDRobustEstimators.tex` in `output/tables`.
+    -  Table S5 saved as `SpatialDiDSamples.tex` in `output/tables`.
+    -  Table S7 saved as `SpatialDiDRobustTreatmentThresholds.tex` in `output/tables`.
+    -  Table S4 saved as `SpatialDiDSupControls.tex` in `output/tables`.
+    -  Table S8 saved as `SpatialDiDRobustEventWindow.tex` in `output/tables`.
   -   Estimated run time: ~X min.
 
 ---
