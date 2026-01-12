@@ -237,9 +237,3 @@ Creates maps of fires used to create Figure 2 and Figure S2.
     - Figure 2 saved as `Figure2.pdf` stored in `output/figures`.
     - Figure S2 saved as `Fire-FT-Examples.pdf` in `output/figures`.
   - Estimated run time: ~ 10 min.
-
----
-
-## Notes on Reproducibility
-
-Due to the size of several datasets and external software requirements (e.g., FlamMap), some intermediate files may be generated locally and are not stored in the GitHub repository. Detailed data access instructions are provided in `data/readme.md`. Users with access to all required inputs should be able to reproduce all figures and tables by executing the scripts in the order described above.
