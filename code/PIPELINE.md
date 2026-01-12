@@ -18,9 +18,21 @@ In addition, the FlamMap / Minimum Travel Time (MTT) simulations (Step 4) requir
 
 Some specifications in the analysis incorporate information on wildfire suppression effort constructed using U.S. Forest Service large airtanker (LAT) drop location data. These data were provided by the U.S. Forest Service under restricted access and are not publicly distributable, and therefore are not included in this repository. Users with approved access to the LAT data may place the files in `data/raw/LAT/`, in which case the suppression-augmented specifications will be reproduced automatically.
 
-The LAT data are used to construct plot-level indicators of proximity to aerial suppression effort and to examine heterogeneity in treatment effects by suppression presence. The baseline treatment effect estimates are similar without the inclusion of these controls and the user can reproduce the baseline results using the cleaned dataset.
+The LAT data are used to construct plot-level indicators of proximity to aerial suppression effort and to examine heterogeneity in treatment effects by suppression presence. The baseline treatment effect estimates are similar without the inclusion of these controls (see Table S4). 
 
 ---
+
+## Replication paths
+
+This repository supports two primary replication workflows:
+
+**1. Full pipeline replication (macOS/Linux)**  
+Users with access to all required software and inputs may reproduce the analysis starting from raw data by executing Steps 1–8 in sequence. This path reconstructs all intermediate datasets used in the paper.
+
+**2. Analysis-only replication (all platforms)**  
+Users who wish to reproduce the main estimation results, tables, and figures without rerunning the full preprocessing pipeline may begin at Step 6 using the cleaned, analysis-ready datasets provided in `data/intermediate/`. This path allows replication of all main results and figures reported in the paper. 
+
+The analysis-only replication path is recommended for users who do not have access to restricted datasets (e.g., LAT drops) or external software (e.g., FlamMap).
 
 
 # Overview of the Pipeline
@@ -131,8 +143,12 @@ Build the plot-level panel dataset used to estimate the causal effects of fuel t
   - For each fire in our sample we construct plots which are defined by their unique direction and distance from the fires ignition point. For each plot we calculate their associated wildfire outcomes, treatment status, and relevant control covariates to be used in our spatial DiD analysis. The script develops the function, "create_SpatialDiD_plot_panel", which allows flexibility to change the number of radial directions = L, the distance of each plot = K, which will be tested in "07_robustness".
   - **Note**: This code defaults to running the baseline plots. At the end of the script the user can uncomment code used to construct alternative samples used in "07_robustness", which greatly increases the run time.
   - **output**: The baseline plots used in spatial DiD analysis `SpatialDiD_Grids_L24_K05.csv` saved in `data/temp`. Note the panel is finished in `06_analysis/01_descriptive_stats.R` where smoke exposure is imputed for fires without PM₂.₅ exposure estimates.
-  - Optional **outputs**: Different direction panels: `"SpatialDiD_Grids_L36_K05.csv`, `"SpatialDiD_Grids_L18_K05.csv`, and `SpatialDiD_Grids_L12_K05.csv`, reported ignition points: `SpatialDiD_Grids_L24_K05_V2.csv`, and alternative treatment thresholds: `SpatialDiD_Grids_L24_K05_100p.csv`, `SpatialDiD_Grids_L24_K05_75p.csv`, `SpatialDiD_Grids_L24_K05_25p.csv`, `SpatialDiD_Grids_L24_K05_zero.csv` all of which are saved to `data/intermediate`.
+  - Optional **outputs**: Different direction panels: `"SpatialDiD_Grids_L36_K05.csv`, `"SpatialDiD_Grids_L18_K05_40p.csv`, and `SpatialDiD_Grids_L12_K05_30p.csv`, reported ignition points: `SpatialDiD_Grids_L24_K05_V2.csv`, and alternative treatment thresholds: `SpatialDiD_Grids_L24_K05_100p.csv`, `SpatialDiD_Grids_L24_K05_75p.csv`, `SpatialDiD_Grids_L24_K05_25p.csv`, `SpatialDiD_Grids_L24_K05_zero.csv` all of which are saved to `data/intermediate`.
   - Estimated run time: ~X hours for baseline plots and ~Y hours with the inclusion of all alternative plots used to test robustness.
+- `code/05_panel/02_build_incomplete_panel.R`.
+  -   Using the similar code from `05_panel/01_build_plot_panel.R`, create a panel of plots using only incomplete fuel treatment projects for a placebo test. Code is not exactly the same as `05_panel/01_build_plot_panel.R"`to avoid unnecessary computation.
+  -   **output**: `SpatialDiD_Grids_24L_K05_Incomp.csv` saved in `data/intermediate`.
+  -   Estimated run time: ~X min.
 
 ---
 
@@ -191,12 +207,7 @@ Conduct robustness checks and placebo tests reported in the Supplementary Materi
   -   **output**: Table S10 saved as `RobustnessBCR.tex` saved in `output/tables`.
   -   Estimated run time: ~22 min.
 
-- `code/07_robustness/03_build_incomplete_panel.R`.
-  -   Using the similar code from `05_panel/01_build_plot_panel.R`, create a panel of plots using only incomplete fuel treatment projects for a placebo test. Code is not exactly the same as `05_panel/01_build_plot_panel.R"`to avoid unnecessary computation.
-  -   **output**: `SpatialDiD_Grids_24L_K05_Incomp.csv` saved in `data/intermediate`.
-  -   Estimated run time: ~X min.
-
-- `code/07_robustness/04_conditional_effects_robustness.R`.
+- `code/07_robustness/03_conditional_effects_robustness.R`.
   -   Run robustness checks on the conditional effects spatial DiD regressions reported in supplemental appendix.
   -   **outputs**:
     - Figure S8 saved as `IncompletePlacebo.pdf` stored in `output/figures`.
@@ -209,7 +220,7 @@ Conduct robustness checks and placebo tests reported in the Supplementary Materi
     -  Table S7 saved as `SpatialDiDRobustTreatmentThresholds.tex` in `output/tables`.
     -  Table S4 saved as `SpatialDiDSupControls.tex` in `output/tables`.
     -  Table S8 saved as `SpatialDiDRobustEventWindow.tex` in `output/tables`.
-  -   Estimated run time: ~X min.
+  -   Estimated run time: ~1.5 hours.
 
 ---
 
