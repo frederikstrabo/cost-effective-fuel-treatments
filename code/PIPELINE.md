@@ -148,7 +148,7 @@ Build the plot-level panel dataset used to estimate the causal effects of fuel t
 - `code/05_panel/02_build_incomplete_panel.R`.
   -   Using the similar code from `05_panel/01_build_plot_panel.R`, create a panel of plots using only incomplete fuel treatment projects for a placebo test. Code is not exactly the same as `05_panel/01_build_plot_panel.R"`to avoid unnecessary computation.
   -   **output**: `SpatialDiD_Grids_24L_K05_Incomp.csv` saved in `data/intermediate`.
-  -   Estimated run time: ~X min.
+  -   Estimated run time: ~4 hours.
 
 ---
 
