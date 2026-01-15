@@ -43,7 +43,7 @@ The analysis-only replication path is recommended for users who do not have acce
 Identify the set of wildfires that intersect U.S. Forest Service fuel treatments and define the treatment–fire interactions that form the basis of the analysis sample.
 
 **Key inputs:**
-- MTBS wildfire perimeters (2017–2023)
+- MTBS wildfire perimeters (2017–2023).
 - USFS FACTS hazardous fuel treatment polygons.
 
 **Scripts:**
@@ -144,7 +144,7 @@ Build the plot-level panel dataset used to estimate the causal effects of fuel t
   - **Note**: This code defaults to running the baseline plots. At the end of the script the user can uncomment code used to construct alternative samples used in "07_robustness", which greatly increases the run time.
   - **output**: The baseline plots used in spatial DiD analysis `SpatialDiD_Grids_L24_K05.csv` saved in `data/temp`. Note the panel is finished in `06_analysis/01_descriptive_stats.R` where smoke exposure is imputed for fires without PM₂.₅ exposure estimates.
   - Optional **outputs**: Different direction panels: `"SpatialDiD_Grids_L36_K05.csv`, `"SpatialDiD_Grids_L18_K05_40p.csv`, and `SpatialDiD_Grids_L12_K05_30p.csv`, reported ignition points: `SpatialDiD_Grids_L24_K05_V2.csv`, and alternative treatment thresholds: `SpatialDiD_Grids_L24_K05_100p.csv`, `SpatialDiD_Grids_L24_K05_75p.csv`, `SpatialDiD_Grids_L24_K05_25p.csv`, `SpatialDiD_Grids_L24_K05_zero.csv` all of which are saved to `data/intermediate`.
-  - Estimated run time: ~X hours for baseline plots and ~Y hours with the inclusion of all alternative plots used to test robustness.
+  - Estimated run time: ~ 4 hours & 15 minutes for baseline panel and ~32 hours for the baseline panel and all alternative panels used to test robustness.
 - `code/05_panel/02_build_incomplete_panel.R`.
   -   Using the similar code from `05_panel/01_build_plot_panel.R`, create a panel of plots using only incomplete fuel treatment projects for a placebo test. Code is not exactly the same as `05_panel/01_build_plot_panel.R"`to avoid unnecessary computation.
   -   **output**: `SpatialDiD_Grids_24L_K05_Incomp.csv` saved in `data/intermediate`.
