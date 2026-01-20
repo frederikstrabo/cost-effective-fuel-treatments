@@ -250,5 +250,5 @@ Creates maps of fires used to create Figure 2 and Figure S2.
   - Creates maps of fires and plots used to create Figure 2 and Figure S2.
   - **outputs**:
     - Figure 2 saved as `Figure2.pdf` stored in `output/figures`.
-    - Figure S2 saved as `Fire-FT-Examples.pdf` in `output/figures`.
+    - Figure S2 saved as `FigureS2.pdf` in `output/figures`.
   - Estimated run time: ~ 10 min.
