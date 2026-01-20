@@ -252,3 +252,48 @@ Creates maps of fires used to create Figure 2 and Figure S2.
     - Figure 2 saved as `Figure2.pdf` stored in `output/figures`.
     - Figure S2 saved as `FigureS2.pdf` in `output/figures`.
   - Estimated run time: ~ 10 min.
+ 
+# Output 
+
+Successful replication will reproduce all tables and figures listed below in the respective `output/figures` and `output/tables` directories.
+
+## Main Tables & Results
+
+| Figure/Table #    | Program                  | Output file                      | Note                            |
+|-------------------|--------------------------|----------------------------------|---------------------------------|
+| Figure 1          | 06_analysis/01_descriptive_stats.R       | Figure1.pdf          |     |
+| Figure 2          | 08_maps/01_create_maps.R                 | Figure2.pdf                     |    |
+| Figure 3          | 06_analysis/02_conditional_effects.R     | Figure3.pdf                     |      |
+| Figure 4          | 06_analysis/03_cumulative_effects.R      | Figure4.pdf                     |      |
+| Figure 5          | 06_analysis/02_conditional_effects.R     | Figure5.pdf                     |      |
+| Table 1           | 06_analysis/03_cumulative_effects.R      | Table1a/b/c.tex                 ||
+
+
+## Appendix Tables & Results
+
+| Figure/Table #    | Program                  | Output file                      | Note                            |
+|-------------------|--------------------------|-------------|---------------------------------|
+| Figure S1         | 06_analysis/03_cumulative_effects.R                   | FigureS1.pdf          |        |
+| Figure S2         | 08_maps/01_create_maps.R                              | FigureS2.png                    |    |
+| Figure S3         | 06_analysis/03_cumulative_effects.R                   | FigureS3.pdf                    | |
+| Figure S4         | 06_analysis/03_cumulative_effects.R                   | FigureS4.pdf                    | |
+| Figure S5         | 06_analysis/02_conditional_effects.R                  | FigureS5.pdf   | |
+| Figure S6         | 06_analysis/03_cumulative_effects.R                   | FigureS6.pdf   | |
+| Figure S7         | 06_analysis/02_conditional_effects.R                  | FigureS7.pdf  | |
+| Figure S8         | 07_robustness/03_conditional_effects_robustness.R     | FigureS8.pdf  | |
+| Figure S9         | 07_robustness/03_conditional_effects_robustness.R     | FigureS9.pdf  | |
+| Figure S10        | 06_analysis/01_descriptive_stats.R                    | FigureS10.pdf  | |
+| Table S1          | 06_analysis/02_conditional_effects.R                            | TableS1.tex                 ||
+| Table S2          | 07_robustness/03_conditional_effects_robustness.R               | TableS2.tex                    ||
+| Table S3          | 07_robustness/03_conditional_effects_robustness.R               | TableS3.tex                       ||
+| Table S4          | 07_robustness/03_conditional_effects_robustness.R               | TableS4.tex                       ||
+| Table S5          | 07_robustness/03_conditional_effects_robustness.R               | TableS5.tex                       ||
+| Table S6          | 07_robustness/03_conditional_effects_robustness.R               | TableS6.tex                       ||
+| Table S7          | 07_robustness/03_conditional_effects_robustness.R               | TableS7.tex                       ||
+| Table S8          | 07_robustness/03_conditional_effects_robustness.R               | TableS8.tex                       ||
+| Table S9          | 06_analysis/03_cumulative_effects.R                             | TableS9.tex                       ||
+| Table S19         | 07_robustness/02_cumulative_effects_matching.R                  | TableS10.tex                       ||
+
+
+
+
