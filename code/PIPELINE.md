@@ -4,6 +4,8 @@ This document describes the end-to-end workflow used to construct the analysis d
 
 Each stage produces well-defined intermediate outputs that are used as inputs to subsequent steps. Scripts are organized into numbered folders reflecting the order in which they should be executed.
 
+At the end of this document, we provide a consolidated list of all tables and figures reported in the paper, along with the scripts in which each output is generated.
+
 # Software requirements
 
 The analysis was conducted using R (version 4.5.2).
