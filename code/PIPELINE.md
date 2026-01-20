@@ -4,7 +4,23 @@ This document describes the end-to-end workflow used to construct the analysis d
 
 Each stage produces well-defined intermediate outputs that are used as inputs to subsequent steps. Scripts are organized into numbered folders reflecting the order in which they should be executed.
 
-## Platform and software notes
+# Software requirements
+
+The analysis was conducted using R (version 4.5.2).
+
+This replication package uses the R package `renv` to ensure a reproducible
+software environment.
+
+Before running any scripts, please restore the required R packages by running:
+
+    install.packages("renv")
+    renv::restore()
+
+The scripts load required R packages programmatically. Package versions are
+managed exclusively via `renv`; users need not not install packages manually.
+
+
+## Platform notes
 
 The full preprocessing pipeline has been developed and tested on macOS and Linux. Several steps rely on fork-based parallel processing via `parallel::mclapply()` to speed up large spatial operations; because forking is not supported on Windows, these steps will not run natively on Windows without modification.
 
@@ -170,21 +186,21 @@ Estimate treatment effects, quantify avoided damages, and generate all figures a
   -  **outputs**:
     - Figure 3 saved as `Figure3.pdf` saved in `output/figures`.
     - Figure 5 saved as `Figure5.pdf` saved in `output/figures`.
-    - Figure S5 saved as `HeterogeneityBurnSeverity.pdf` saved in `output/figures`.
-    - Figure S7 saved as `EventWindows.pdf` saved in `output/figures`.
-    - Table S1 saved as `SpatialDiDBaseline.tex` saved in `output/tables`.
+    - Figure S5 saved as `FigureS5.pdf` saved in `output/figures`.
+    - Figure S7 saved as `FigureS7.pdf` saved in `output/figures`.
+    - Table S1 saved as `TableS1.tex` saved in `output/tables`.
   - Estimated run time: ~2 min.
       
 - `code/06_analysis/03_cumulative_effects.R`.
   -   Conduct the cumulative effects (i.e. "survival analysis", Figure 4), calculate conditional treatment benefits (Table 1, A & B) , and conduct the ex-ante benefit cost ratio (BCR) analysis (Table 1 C).
   -   **outputs**:
     - Figure 4 saved as `Figure4.pdf` saved in `output/figures`.
-    - Figure S1 saved as `Survival_Difference.pdf` saved in `output/figures`.
-    - Figure S3  saved as `EventStudy_Survival_High_Ordinal_BS.pdf` saved in `output/figures`.
-    - Tables 1 A), B) & C) saved as `PhysicalBenefits.tex`, `EconomicBenefits.tex`, and `ExAnteBCRs.tex` saved in `output/tables`.
-    - Table S9 saved as `BenefitCostRatios.tex` saved in `output/tables`.
-    - Figure S6 saved as `TreatmentInteractionSurvival.pdf` saved in `output/figures`.
-    - Figure S4 saved as `SurvivalSizeHeterogeneity.pdf` saved in `output/figures`.
+    - Figure S1 saved as `FigureS1.pdf` saved in `output/figures`.
+    - Figure S3  saved as `FigureS3.pdf` saved in `output/figures`.
+    - Tables 1 A), B) & C) saved as `Table1a.tex`, `Table1b.tex`, and `Table1c.tex` saved in `output/tables`.
+    - Table S9 saved as `TableS9.tex` saved in `output/tables`.
+    - Figure S6 saved as `FigureS6.pdf` saved in `output/figures`.
+    - Figure S4 saved as `FigureS4.pdf` saved in `output/figures`.
     - `BCR_Robustness.csv`  saved in `data/temp`.      
   -   Estimated run time: ~45 min.
   
@@ -204,22 +220,21 @@ Conduct robustness checks and placebo tests reported in the Supplementary Materi
   -   Estimated run time: ~20 min.
 - `code/07_robustness/02_cumulative_effects_matching.R`.
   -   Re-run the survival and BCR analysis using the matched control specification.
-  -   **output**: Table S10 saved as `RobustnessBCR.tex` saved in `output/tables`.
+  -   **output**: Table S10 saved as `TableS10.tex` saved in `output/tables`.
   -   Estimated run time: ~22 min.
 
 - `code/07_robustness/03_conditional_effects_robustness.R`.
   -   Run robustness checks on the conditional effects spatial DiD regressions reported in supplemental appendix.
   -   **outputs**:
-    - Figure S8 saved as `IncompletePlacebo.pdf` stored in `output/figures`.
-    - Figure S9 saved as `MatchingDiD.pdf` in `output/figures`.
-    - Figure S9 saved as `MatchingDiD.pdf` in `output/figures`.
-    -  Table S3 saved as `SpatialDiDRobustDirections.tex` in `output/tables`.
-    -  Table S2 saved as `SpatialDiDRobustParallelTrends.tex` in `output/tables`.
-    -  Table S2 saved as `SpatialDiDRobustEstimators.tex` in `output/tables`.
-    -  Table S5 saved as `SpatialDiDSamples.tex` in `output/tables`.
-    -  Table S7 saved as `SpatialDiDRobustTreatmentThresholds.tex` in `output/tables`.
-    -  Table S4 saved as `SpatialDiDSupControls.tex` in `output/tables`.
-    -  Table S8 saved as `SpatialDiDRobustEventWindow.tex` in `output/tables`.
+    - Figure S8 saved as `FigureS8.pdf` stored in `output/figures`.
+    - Figure S9 saved as `FigureS9.pdf` in `output/figures`.
+    -  Table S3 saved as `TableS3.tex` in `output/tables`.
+    -  Table S2 saved as `TableS2.tex` in `output/tables`.
+    -  Table S2 saved as `TableS6.tex` in `output/tables`.
+    -  Table S5 saved as `TableS5.tex` in `output/tables`.
+    -  Table S7 saved as `TableS7.tex` in `output/tables`.
+    -  Table S4 saved as `TableS4.tex` in `output/tables`.
+    -  Table S8 saved as `TableS8.tex` in `output/tables`.
   -   Estimated run time: ~1.5 hours.
 
 ---
