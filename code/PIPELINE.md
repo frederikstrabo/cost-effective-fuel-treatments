@@ -42,7 +42,7 @@ The LAT data are used to construct plot-level indicators of proximity to aerial 
 
 This repository supports two primary replication workflows:
 
-**1. Full pipeline replication (macOS/Linux)**  
+**1. Full pipeline replication**  
 Users with access to all required software and inputs may reproduce the analysis starting from raw data by executing Steps 1–8 in sequence. This path reconstructs all intermediate datasets used in the paper.
 
 **2. Analysis-only replication (all platforms)**  
