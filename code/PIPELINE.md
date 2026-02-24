@@ -32,12 +32,6 @@ Windows users have several options:
 
 In addition, the FlamMap / Minimum Travel Time (MTT) simulations (Step 4) require the FlamMap software and some manual user interaction. To facilitate reproducibility, this repository includes the processed MTT outputs used in the analysis, allowing users to reproduce all main results without rerunning the MTT simulations. Instructions for regenerating MTT outputs are provided for users with access to FlamMap.
 
-## Restricted data and reproducibility notes
-
-Some specifications in the analysis incorporate information on wildfire suppression effort constructed using U.S. Forest Service large airtanker (LAT) drop location data. These data were provided by the U.S. Forest Service under restricted access and are not publicly distributable, and therefore are not included in this repository. Users with approved access to the LAT data may place the files in `data/raw/LAT/`, in which case the suppression-augmented specifications will be reproduced automatically.
-
-The LAT data are used to construct plot-level indicators of proximity to aerial suppression effort and to examine heterogeneity in treatment effects by suppression presence. The baseline treatment effect estimates are similar without the inclusion of these controls (see Table S4). 
-
 ---
 
 ## Replication paths
@@ -50,7 +44,7 @@ Users with access to all required software and inputs may reproduce the analysis
 **2. Analysis-only replication (all platforms)**  
 Users who wish to reproduce the main estimation results, tables, and figures without rerunning the full preprocessing pipeline may begin at Step 6 using the cleaned, analysis-ready datasets provided in `data/intermediate/`. This path allows replication of all main results and figures reported in the paper. 
 
-The analysis-only replication path is recommended for users who do not have access to restricted datasets (e.g., LAT drops) or external software (e.g., FlamMap).
+The analysis-only replication path is recommended for users who do not have access to external software (e.g., FlamMap).
 
 
 # Overview of the Pipeline
