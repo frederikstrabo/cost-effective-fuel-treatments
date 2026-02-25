@@ -288,7 +288,7 @@ Successful replication will reproduce all tables and figures listed below in the
 | Table S7          | 07_robustness/03_conditional_effects_robustness.R               | TableS7.tex                       ||
 | Table S8          | 07_robustness/03_conditional_effects_robustness.R               | TableS8.tex                       ||
 | Table S9          | 06_analysis/03_cumulative_effects.R                             | TableS9.tex                       ||
-| Table S19         | 07_robustness/02_cumulative_effects_matching.R                  | TableS10.tex                       ||
+| Table S10         | 07_robustness/02_cumulative_effects_matching.R                  | TableS10.tex                       ||
 
 
 
