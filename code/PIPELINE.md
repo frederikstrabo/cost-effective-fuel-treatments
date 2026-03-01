@@ -253,7 +253,7 @@ Creates maps of fires used to create Figure 2 and Figure S2.
 
 Successful replication will reproduce all tables and figures listed below in the respective `output/figures` and `output/tables` directories.
 
-## Main Tables & Results
+## Main Figures & Tables
 
 | Figure/Table #    | Program                  | Output file                      | Note                            |
 |-------------------|--------------------------|----------------------------------|---------------------------------|
@@ -265,7 +265,7 @@ Successful replication will reproduce all tables and figures listed below in the
 | Table 1           | 06_analysis/03_cumulative_effects.R      | Table1a/b/c.tex                 ||
 
 
-## Appendix Tables & Results
+## Appendix Figures & Tables
 
 | Figure/Table #    | Program                  | Output file                      | Note                            |
 |-------------------|--------------------------|-------------|---------------------------------|
