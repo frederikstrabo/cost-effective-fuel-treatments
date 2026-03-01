@@ -8,7 +8,7 @@ This study integrates high-resolution spatial data on wildfires, fuel treatments
 This GitHub repository contains the full codebase implementing the workflow from raw data ingestion and processing through statistical estimation and figure generation.
 
 - A detailed description of the analysis workflow and the role of each script is provided in `code/PIPELINE.md`. It is recommended to read this before replication.
-- A detailed description of the data raw data directory is provided in `data/data_readme.md`.
+- A detailed description of the data raw data directory is provided in `data/readme.md`.
 
 
 ## Replication Archive (Code + Data)
