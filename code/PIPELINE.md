@@ -34,21 +34,14 @@ Windows users have several options:
 In addition, the FlamMap / Minimum Travel Time (MTT) simulations (Step 4) require the FlamMap software and some manual user interaction. To facilitate reproducibility, this repository includes the processed MTT outputs used in the analysis, allowing users to reproduce all main results without rerunning the MTT simulations. Instructions for regenerating MTT outputs are provided for users with access to FlamMap.
 
 ---
-Before running any scripts, please restore the required R packages by running:
-
-    install.packages("renv")
-    renv::restore()
-
-The scripts load required R packages programmatically. Package versions are
-managed exclusively via `renv`; users need not not install packages manually.
 
 ## Instructions for replicators
 
 1. Unzip the replication package and open the file cost-effective-fuel-treatments.Rproj in RStudio.
 2. Restore the required R packages by running:Before running any scripts, please restore the required R packages by running:
 
-    `install.packages("renv")
-    renv::restore()`
+    ``install.packages("renv")
+    renv::restore()``
 
 3. Run scripts from `code/main.R` to execute the full replication pipeline.
 
