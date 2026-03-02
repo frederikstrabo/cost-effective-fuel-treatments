@@ -35,6 +35,14 @@ In addition, the FlamMap / Minimum Travel Time (MTT) simulations (Step 4) requir
 
 ---
 
+## Instructions for replicators
+
+1. Unzip the replication package and open the file cost-effective-fuel-treatments.Rproj in RStudio.
+2. Restore the required R packages by running:
+     install.packages("renv")
+     renv::restore()
+3. Run scripts from `code/main.R` to execute the full replication pipeline.
+
 ## Replication paths
 
 This repository supports two primary replication workflows:
@@ -46,7 +54,6 @@ Users with access to all required software and inputs may reproduce the analysis
 Users who wish to reproduce the main estimation results, tables, and figures without rerunning the full preprocessing pipeline may begin at Step 6 using the cleaned, analysis-ready datasets provided in `data/intermediate/`. This path allows replication of all main results and figures reported in the paper. 
 
 The analysis-only replication path is recommended for users who do not have access to external software (e.g., FlamMap).
-
 
 # Overview of the Pipeline
 
