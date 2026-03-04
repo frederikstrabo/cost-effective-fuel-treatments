@@ -43,7 +43,7 @@ In addition, the FlamMap / Minimum Travel Time (MTT) simulations (Step 4) requir
     ``install.packages("renv");
     renv::restore()``
 
-3. Manually install `rnaturalearthhires` (this is unable to be restored through `renv`).
+3. Manually install `rnaturalearthhires` (this is unable to be restored through `renv` due to it not being available on CRAN). See [rnaturalearthhires](https://docs.ropensci.org/rnaturalearthhires/) for more details on installation.
 4. Run scripts from `code/main.R` to execute the full replication pipeline.
 
 ## Replication paths
