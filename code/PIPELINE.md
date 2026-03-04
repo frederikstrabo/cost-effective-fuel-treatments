@@ -38,7 +38,7 @@ In addition, the FlamMap / Minimum Travel Time (MTT) simulations (Step 4) requir
 ## Instructions for replicators
 
 1. Unzip the replication package and open the file cost-effective-fuel-treatments.Rproj in RStudio.
-2. Restore the required R packages by running:Before running any scripts, please restore the required R packages by running:
+2. Restore the required R packages by running:
 
     ``install.packages("renv");
     renv::restore()``
