@@ -15,9 +15,9 @@ This GitHub repository contains the full codebase implementing the workflow from
 
 Due to size constraints raw input datasets are not stored directly in this GitHub repository.
 
-The complete replication package, including all code and datasets necessary to reproduce the results and figures reported in the paper, is archived at Zenodo:
+The full replication package, including all code and data necessary to reproduce the results in the paper, is archived at Zenodo:
 
-DOI: 10.5281/zenodo.XXXXXXX
+https://doi.org/10.5281/zenodo.18882334
 
 ## Directory Structure
 
