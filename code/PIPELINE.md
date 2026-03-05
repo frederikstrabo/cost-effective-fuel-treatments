@@ -51,7 +51,7 @@ In addition, the FlamMap / Minimum Travel Time (MTT) simulations (Step 4) requir
 This repository supports two primary replication workflows:
 
 **1. Full pipeline replication**  
-Users with access to all required software and inputs may reproduce the analysis starting from raw data by executing Steps 1–8 in sequence. This path reconstructs all intermediate datasets used in the paper.
+Users with access to all required software (R, python, FlamMap) and inputs may reproduce the analysis starting from raw data by executing Steps 1–8 in sequence. This path reconstructs all intermediate datasets used in the paper.
 
 **2. Analysis-only replication (all platforms)**  
 Users who wish to reproduce the main estimation results, tables, and figures without rerunning the full preprocessing pipeline may begin at Step 6 using the cleaned, analysis-ready datasets provided in `data/intermediate/`. This path allows replication of all main results and figures reported in the paper. 
