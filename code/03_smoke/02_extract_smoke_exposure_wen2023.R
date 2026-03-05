@@ -1,20 +1,21 @@
 ##########################################    02_extract_smoke_exposure_wen2023.R  ##########################################
 
-################# Purpose: Uses data and code from Wen et al. (2023) to get population-day weighted PM2.5 smoke exposure estimates for fires in our sample 
+################# Purpose: Uses data and code from Wen et al. (2023) to get population-day weighted PM2.5 smoke exposure estimates for fires in our sample. 
 
-#### Outputs: "Smoke_Fire_Effects_Wen2023.csv" saved in data/intermediate/Wen2023
-####          - Each row is a unique MTBS fire with estimated deaths, death costs, earnings lost, and total population day weighted PM2.5 exposure
+################# Outputs: "Smoke_Fire_Effects_Wen2023.csv" saved in data/intermediate/Wen2023
+#################          - Each row is a unique MTBS fire with estimated deaths, death costs, earnings lost, and total population day weighted PM2.5 exposure.
+
+################# Estimated run time: ~5 minutes
 
 rm(list=ls())
 
-if (!require("pacman")) install.packages("pacman")
-pacman::p_load(dplyr,sf, tmap, magrittr, rnaturalearth, rnaturalearthdata, ggplot2, maps, lwgeom, rgeos, raster, stars, haven, stargazer, quantmod, lubridate, tidyr, ggpubr, 
-               rgdal, exactextractr, tictoc, terra, gtools, here, fixest, modelsummary, readr, rdrobust, prism, parallel,tmaptools, 
+# if (!require("pacman")) install.packages("pacman")
+pacman::p_load(dplyr,sf, tmap, magrittr, rnaturalearth, rnaturalearthdata, ggplot2, maps, lwgeom, raster, stars, haven, stargazer, quantmod, lubridate, tidyr, ggpubr, 
+               exactextractr, tictoc, terra, gtools, here, fixest, modelsummary, readr, rdrobust, prism, parallel,tmaptools, 
                OpenStreetMap, maptiles, gifski, purrr, nngeo, stringr, geosphere, data.table, fst, cowplot, pbmcapply, pbapply, patchwork, ggalluvial, ggpubr, RStoolbox)
 
 # Set Path
 here::i_am("code/03_smoke/02_extract_smoke_exposure_wen2023.R")
-
 
 ###### Load in Data sources
 

@@ -1,17 +1,29 @@
 ##########################################    03_cumulative_effects.R  ##########################################
 
-################# Purpose: From main specification create survival plots 
+################# Purpose: Conduct cumulative effect, i.e. "survival analysis", calculate conditional treatment benefits, and conduct the ex-ante benefit cost ratio (BCR) analysis.  
+
+################# Output: Figure 4 saved as "Figure4.pdf" saved in "output/figures". 
+#################         Figure S1 saved as "FigureS1.pdf" saved in "output/figures".
+#################         Figure S3 saved as "FigureS3.pdf" saved in "output/figures".
+#################         Table 1 A), B), & C) saved as "Table1a.tex", "Table1b.tex", "Table1c.tex" saved in "output/tables".
+#################         Table S9 saved as "TableS9.tex" saved in "output/tables".
+#################         Figure S6 saved as "FigureS6.pdf" saved in "output/figures".
+#################         Figure S4 saved as "FigureS4.pdf" saved in "output/figures".
+#################         "BCR_Robustness.csv"  saved in "data/temp". 
+
+################# Estimated run time: ~45 min
 
 rm(list=ls())
 
-if (!require("pacman")) install.packages("pacman")
-pacman::p_load(dplyr,sf, tmap, magrittr, rnaturalearth, rnaturalearthdata, ggplot2, maps, lwgeom, rgeos, raster, stars, haven, stargazer, quantmod, lubridate, tidyr, ggpubr, 
-               rgdal, exactextractr, tictoc, terra, gtools, here, fixest, modelsummary, readr, rdrobust, prism, parallel,tmaptools, 
+# if (!require("pacman")) install.packages("pacman")
+pacman::p_load(dplyr,sf, tmap, magrittr, rnaturalearth, rnaturalearthdata, ggplot2, maps, lwgeom, raster, stars, haven, stargazer, quantmod, lubridate, tidyr, ggpubr, 
+               exactextractr, tictoc, terra, gtools, here, fixest, modelsummary, readr, rdrobust, prism, parallel,tmaptools, 
                OpenStreetMap, maptiles, gifski, geosphere, did, cowplot, didimputation, boot, survival, survminer, patchwork, gridExtra)
 
 # Set Path
-here::i_am("code/06_analysis/cumulative_effects.R")
+here::i_am("code/06_analysis/03_cumulative_effects.R")
 
+tic()
 
 # Load Functions 
 
@@ -22,7 +34,6 @@ st_erase = function(x, y) st_difference(x, st_make_valid(st_union(st_combine(y))
 ## Load in DiD Grids 
 
 Grids_df <- read_csv(here("data", "intermediate", "SpatialDiD_Grids_L24_K05.csv"))
-Grids_df <- mutate(Grids_df, Treat_Post = ifelse(Treated_Dir == 1 & time_to_treat >= 0, 1, 0))
 Grids_df <- mutate(Grids_df,  dist_treated = ifelse(Treated_Dir == 0, 1000, L_TAU)) # For Sun & Abraham Estimator
 Grids_df <- Grids_df %>%
   dplyr::select(
@@ -35,9 +46,7 @@ Grids_df <- Grids_df %>%
     everything()
   )  
 
-
-# Grids_df$LOG_FIRE_INTENSITY[Grids_df$LOG_FIRE_INTENSITY == -Inf] <- NA
-
+###########   Run baseline cumulative effects analysis  ###########
 
 #### To do the survival analysis we use an OLS model on the untreated (control & yet-to-be treated) 
 ##      observations to predict/impute the conditional probability of fire spread for the treated units in 
@@ -45,9 +54,13 @@ Grids_df <- Grids_df %>%
 ##      between treated and untreated outcomes.
 
 
-Grids_df_filt <- filter(Grids_df, BURN_LAG == 1)
-Grids_df_filt_1 <- filter(Grids_df_filt, time_to_treat %in% seq(-5,4,1) & Burn_Right_Away == 0)
+# subset to observations that are "yet-to-be extinguished" in order to estimate the conditional hazard model
 
+Grids_df_filt <- filter(Grids_df, BURN_LAG == 1)
+
+# limit to the 2.5km window - also remove treated observations that occur in distance bin 1 (i.e. Burn_Right_Away == 1).
+
+Grids_df_filt_1 <- filter(Grids_df_filt, time_to_treat %in% seq(-5,4,1) & Burn_Right_Away == 0)
 
 #### Predict out of sample
 
@@ -55,6 +68,8 @@ controls <- c("Slope", "Elev", "TRI", "Distance_FS_Road", "USFS_NF", "Wilderness
               "Distance_US_Highway", "Distance_WUI", "ERC", "WindSpeed", "FM1000", "PREV_BURN_10Y",
               "LAT", "LAT_LINE_INT", "LOG_DIST_LAT", "WIND_DIFF", "DELTA_MTT", "NA_DELTA_MTT",
               "LOG_FIRE_INTENSITY", "ROAD", "WUI")
+
+## Different regression formulas for the 4 different outcomes of interest
 
 # Dynamically construct the formula
 formula_burn_pred <- as.formula(paste(
@@ -85,8 +100,12 @@ formula_high_burn_sev <- as.formula(paste(
 ))
 
 
+## Create untreated samples - post-treatment observations are considered treated if they are inside of a treatment (Treated) or directly after one (Treated_LAG) 
+
 Grids_df_untreated <- filter(Grids_df_filt_1, Treated == 0 & Treated_LAG == 0)
-Grids_df_untreated_BURN <- filter(Grids_df_untreated, BURN == 1)
+Grids_df_untreated_BURN <- filter(Grids_df_untreated, BURN == 1) # Conditional on burning sample used to estimate burn severity effects
+
+## Run OLS models
 
 OLS_Pred_Model <- feols(formula_burn_pred,
                         cluster = ~FIRE_ID,
@@ -112,141 +131,36 @@ OLS_Pred_Model_High_Burn <- feols(formula_high_burn_sev,
                                   fixef.rm  = "none",
                                   data = Grids_df_untreated_BURN)
 
-# # Dynamically construct the formula
-# formula_burn_pred_NAs <- as.formula(paste(
-#   "BURN ~ ",
-#   paste(controls, collapse = " + "),           # Add all control variables
-#   "| distance_bin + FIRE_ID + FuelType_2001 + Aspect_Class"         # Add fixed effects
-# ))
-# 
-# # Dynamically construct the formula
-# formula_burn_sev_NAs <- as.formula(paste(
-#   "BURN_SEV0 ~ ",
-#   paste(controls, collapse = " + "),           # Add all control variables
-#   "| distance_bin + FIRE_ID + FuelType_2001 + Aspect_Class"         # Add fixed effects
-# ))
-# 
-# OLS_Pred_Model <- feols(formula_burn_pred,
-#                         cluster = ~FIRE_ID,
-#                         weights = ~Grid_Acres,
-#                         data = Grids_df_untreated)
-# 
-# OLS_Pred_Model_Burn <- feols(formula_burn_sev,
-#                              cluster = ~FIRE_ID,
-#                              weights = ~Grid_Acres,
-#                              data = Grids_df_untreated_BURN)
-# 
-# OLS_Pred_Model_Med_High_Burn <- feols(formula_med_high_burn_sev,
-#                                       cluster = ~FIRE_ID,
-#                                       weights = ~Grid_Acres,
-#                                       data = Grids_df_untreated_BURN)
-# 
-# OLS_Pred_Model_High_Burn <- feols(formula_high_burn_sev,
-#                                   cluster = ~FIRE_ID,
-#                                   weights = ~Grid_Acres,
-#                                   data = Grids_df_untreated_BURN)
-# 
-# 
-# OLS_Pred_Model_NAs <- feols(formula_burn_pred_NAs,
-#                         cluster = ~FIRE_ID,
-#                         weights = ~Grid_Acres,
-#                         data = Grids_df_untreated)
-# 
-# OLS_Pred_Model_Burn_NAs <- feols(formula_burn_sev_NAs,
-#                              cluster = ~FIRE_ID,
-#                              weights = ~Grid_Acres,
-#                              data = Grids_df_untreated_BURN)
 
+#### Define distance  window that we allow cumulative effects to accumulate in B-C Analysis
 
+distance_window <- seq(-1,9,1) # 0-5 km
 
-# #### Aside what is R^2 with and without MTT outputs - addressing reviewer 1's concern ####
-# 
-# Grids_df_untreated$LOG_FIRE_INTENSITY[Grids_df_untreated$LOG_FIRE_INTENSITY == -Inf] <- NA
-# Grids_df_untreated_BURN <- filter(Grids_df_untreated, BURN == 1)
-# 
-# 
-# mod1 <- feols(scale(BURN) ~ scale(DELTA_MTT) | direction_fire_FE + distance_bin,
-#       cluster = ~FIRE_ID,
-#       weights = ~Grid_Acres,
-#       data = Grids_df_untreated)
-# 
-# summary(mod1)
-# 
-# mod2 <- feols(scale(BURN) ~ scale(LOG_FIRE_INTENSITY) | direction_fire_FE + distance_bin,
-#                                cluster = ~FIRE_ID,
-#                                weights = ~Grid_Acres,
-#                                data = Grids_df_untreated)
-# 
-# summary(mod2)
-# 
-# mod3 <- feols(scale(BURN_SEV_MED_HIGH_PCT) ~ scale(DELTA_MTT) | direction_fire_FE + distance_bin,
-#       cluster = ~FIRE_ID,
-#       weights = ~Grid_Acres,
-#       data = Grids_df_untreated)
-# 
-# summary(mod3)
-# 
-# mod4 <- feols(scale(BURN_SEV_MED_HIGH_PCT) ~ scale(LOG_FIRE_INTENSITY) | direction_fire_FE + distance_bin,
-#       cluster = ~FIRE_ID,
-#       weights = ~Grid_Acres,
-#       data = Grids_df_untreated)
-# 
-# summary(mod4)
-# 
-# ####           Return                     ####
+## focus on treated directions for cumulative effects - also remove directions where distance of first treatment is distance bin = 1
 
+treated_data <- Grids_df %>% filter(Treated_Dir == 1 & Burn_Right_Away == 0) %>% filter(time_to_treat %in% distance_window)
 
-
-
-time_window <- seq(-1,9,1)
-
-treated_data <- Grids_df %>% filter(Treated_Dir == 1 & Burn_Right_Away == 0) %>% filter(time_to_treat %in% time_window)
+## Predict conditional probabilities & burn severities
 
 treated_data$pred_without_treatment <- predict(OLS_Pred_Model, newdata = treated_data, type = "response")
 treated_data$pred_without_treatment_BS <- predict(OLS_Pred_Model_Burn, newdata = treated_data, type = "response")
 treated_data$pred_without_treatment_MED_HIGH_BS <- predict(OLS_Pred_Model_Med_High_Burn, newdata = treated_data, type = "response")
 treated_data$pred_without_treatment_HIGH_BS <- predict(OLS_Pred_Model_High_Burn, newdata = treated_data, type = "response")
 
-
 sum(is.na(treated_data$pred_without_treatment))
 sum(is.na(treated_data$pred_without_treatment_BS))
 sum(is.na(treated_data$pred_without_treatment_MED_HIGH_BS))
 sum(is.na(treated_data$pred_without_treatment_HIGH_BS))
 
-
-# nas <- dplyr::select(treated_data, direction_fire_FE, BURN, time_to_treat, dist_treated, distance_bin, pred_without_treatment, pred_without_treatment_BS) %>% arrange(direction_fire_FE) %>%
-#   filter(is.na(pred_without_treatment_BS) == T)
-# 
-# Grids_df_untreated[Grids_df_untreated$direction_fire_FE == "3-CA4172612124320190728",]
-# ex <- Grids_df[Grids_df$direction_fire_FE == "3-CA4172612124320190728",]
-
-
-# 1. Get alternate predictions from the Fire-FE model for all rows
-# treated_data <- treated_data %>%
-#   mutate(pred_without_treatment_alt = predict(
-#     OLS_Pred_Model_NAs,
-#     newdata = cur_data_all(),   # dplyr >= 1.1.0
-#     type   = "response"
-#   ))
-# 
-# # 2. Replace NA's in the main prediction with the alt prediction
-# treated_data <- treated_data %>%
-#   mutate(pred_without_treatment = if_else(
-#     is.na(pred_without_treatment),
-#     pred_without_treatment_alt,
-#     pred_without_treatment
-#   )) %>%
-#   dplyr::select(-pred_without_treatment_alt)  # optional cleanup
+## Remove observations for which we have no prediction
 
 treated_data <- filter(treated_data, is.na(pred_without_treatment) == F)
-
-sum(is.na(treated_data$pred_without_treatment))
 
 ex <- dplyr::select(treated_data, direction_fire_FE, BURN, time_to_treat, dist_treated, distance_bin, pred_without_treatment) %>% arrange(direction_fire_FE)
 
 treated_data[is.na(treated_data$pred_without_treatment), "pred_without_treatment"] <- 0
 
-## Option 1 - for predictions > 1 set to 1, < 0, set to 0
+## Alternative option is to limit predictions to be within [0,1] - doesn't change results much.
 
 # treated_data <- mutate(treated_data, pred_without_treatment = case_when(pred_without_treatment > 1 ~ 1,
 #                                                                      pred_without_treatment < 0 ~ 0,
@@ -257,10 +171,6 @@ treated_data[is.na(treated_data$pred_without_treatment_BS), "pred_without_treatm
 treated_data[is.na(treated_data$pred_without_treatment_MED_HIGH_BS), "pred_without_treatment_MED_HIGH_BS"] <- 0
 treated_data[is.na(treated_data$pred_without_treatment_HIGH_BS), "pred_without_treatment_HIGH_BS"] <- 0
 
-# treated_data <- mutate(treated_data, pred_without_treatment_HIGH_BS = case_when(pred_without_treatment_HIGH_BS > 1 ~ 1,
-#                                                                                 pred_without_treatment_HIGH_BS < 0 ~ 0,
-#                                                                                 pred_without_treatment_HIGH_BS >= 0 & pred_without_treatment_HIGH_BS <= 1 ~ pred_without_treatment_HIGH_BS))
-
 treated_data <- mutate(treated_data, 
                        pred_without_treatment_MED_HIGH_BS = case_when(pred_without_treatment_MED_HIGH_BS > 1 ~ 1,
                                                                       pred_without_treatment_MED_HIGH_BS < 0 ~ 0,
@@ -268,6 +178,7 @@ treated_data <- mutate(treated_data,
                        pred_without_treatment_HIGH_BS = case_when(pred_without_treatment_HIGH_BS > 1 ~ 1,
                                                                   pred_without_treatment_HIGH_BS < 0 ~ 0,
                                                                   pred_without_treatment_HIGH_BS >= 0 & pred_without_treatment_HIGH_BS <= 1 ~ pred_without_treatment_HIGH_BS))
+## "With treatment" counterfactual is observed outcomes
 
 treated_data <- mutate(treated_data, 
                        pred_with_treatment = BURN,
@@ -277,7 +188,7 @@ treated_data <- mutate(treated_data,
   arrange(direction_fire_FE, time_to_treat)
 
 
-# Create 1-6 lags for each variable
+# Create 1-9 lags for the conditional probability of fire spread
 treated_data <- treated_data %>%
   arrange(direction_fire_FE, time_to_treat) %>% # Ensure data is ordered by ID and time
   group_by(direction_fire_FE) %>%              # Group by ID
@@ -301,7 +212,7 @@ treated_data <- treated_data %>%
          p900 = lag(pred_without_treatment, 9)) %>% # Create lagged columns
   ungroup()                                      # Remove grouping
 
-
+## Create survival probabilities - the production of conditional probabilities
 
 treated_data <- mutate(treated_data, 
                        survival_with_treatment = case_when(time_to_treat == -1 ~ 1,
@@ -329,6 +240,8 @@ treated_data <- mutate(treated_data,
                                                               time_to_treat == 9 ~ pred_without_treatment*p100*p200*p300*p400*p500*p600*p700*p800*p900)
 )
 
+## Create burn severity predicted probabilities product of the predicted survival probability * predicted conditional burn severity
+
 treated_data <- mutate(treated_data, 
                        BS_with_treatment = survival_with_treatment*pred_with_treatment_BS,
                        BS_without_treatment = ifelse(time_to_treat == -1, survival_with_treatment*pred_with_treatment_BS,
@@ -342,11 +255,15 @@ treated_data <- mutate(treated_data,
 )
 
 
+## Note how many directions there are
+
 N_obs_treat_time <- treated_data %>%
   group_by(time_to_treat) %>%
   summarise(N_obs = n())
 
 N_Directions <- as.numeric(N_obs_treat_time[1,2])
+
+## Calculate average outcomes in the treated and untreated counterfactuals for each event time interval
 
 survivor_plot <- treated_data %>%
   group_by(time_to_treat) %>%
@@ -457,32 +374,17 @@ survival_plot_MED_HIGH_BS <- ggplot(survivor_plot, aes(x = time_to_treat)) +
     axis.text = element_text(size = 16),
     plot.title = element_text(size = 20, face = "bold", hjust = 0.5))
 
-# survival_plot_HIGH_BS <- ggplot(survivor_plot, aes(x = time_to_treat)) +
-#   # Dashed vertical line at -0.5
-#   geom_vline(xintercept = -0.5, linetype = "dashed", color = "black", linewidth = 0.8) +
-#   geom_line(aes(y = Pct_Burned_HS_Treat, color = "With Treatment"), size = 1.2) +
-#   geom_line(aes(y = Pct_Burned_HS_No_Treat, color = "Without Treatment"), size = 1.2) +
-#   labs(
-#     title = "Predicted Share of High Burn Severity by Distance From Treatment",
-#     x = "Distance To Treatment (0.5km)",
-#     y = "Mean Predicted Share of High Burn Severity",
-#     color = "Treatment Status"
-#   ) +
-#   scale_color_manual(values = c("With Treatment" = "#0072B2", "Without Treatment" = "#D55E00")) +
-#   theme_minimal(base_size = 14) +
-#   theme(
-#     panel.grid = element_blank(),  # Remove minor gridlines for a cleaner look
-#     panel.border = element_rect(color = "black", fill = NA, linewidth = 1),  # Add axes
-#     axis.line = element_blank(),  # Avoid duplicate axis lines
-#     axis.title = element_text(size = 16, face = "bold"),
-#     axis.text = element_text(size = 16),
-#     plot.title = element_text(size = 20, face = "bold", hjust = 0.5))
+
+
+###########   Create Figure 4 & Figure S1  ###########
+
+## Want to bootstrap standard errors for the plot - bootstrap_survivor_LPM is a function used to bootstrap which copies the above code used to conduct the survival analysis
 
 bootstrap_survivor_LPM <- function(data, indices) {
   # Resample clusters (FIRE_ID)
   resampled_fires <- unique(data$FIRE_ID)[indices]
   
-  Resample_Grids <- filter(data, FIRE_ID %in% resampled_fires)
+  Resample_Grids <- filter(data, FIRE_ID %in% resampled_fires) # bootstrapping step
   
   Grids_df_filt <- filter(Resample_Grids, BURN_LAG == 1)
   Grids_df_filt_1 <- filter(Grids_df_filt, time_to_treat %in% seq(-5,4,1) & Burn_Right_Away == 0)
@@ -645,6 +547,9 @@ bootstrap_survivor_LPM <- function(data, indices) {
   return(c(leads_Treat, leads_No_Treat, leads_Treat_BS, leads_No_Treat_BS, diff_survival, diff_BS))
 }
 
+
+#### Run bootstrap for cumulative effects of fire spread and % moderate-high burn severity
+
 set.seed(123) # For reproducibility
 type <- "Med-High"
 bootstrap_results <- boot(data = Grids_df, 
@@ -750,8 +655,6 @@ survivor_plot_boot[1, c("Treated_BS_Mean", "Treated_BS_Lower", "Treated_BS_Upper
 
 # survivor_plot_boot <- filter(survivor_plot_boot, time_to_treat >= 0)
 # survivor_plot_boot$distance <- seq(0, 2.5, 0.5)
-
-
 
 survival_plot_boot <- ggplot(survivor_plot_boot, aes(x = distance)) +
   # Confidence intervals as ribbons
@@ -921,6 +824,7 @@ if (type == "Med-High"){
     )}
 
 
+#### Layout for Figure 4
 
 # Combine the two plots and ensure only one legend
 final_layout <- (survival_plot_boot | survival_MH_BS_plot_boot) +
@@ -945,15 +849,13 @@ final_layout <- (survival_plot_boot | survival_MH_BS_plot_boot) +
     legend.position = "bottom"
   )
 
-
-# plot1 <- readRDS(here("output", "event_plotBURN.rds"))
-# plot2 <- readRDS(here("output", "event_plotBURNSEV.rds"))
-
 ggsave(here("output", "figures", "Figure4.pdf"), final_layout,
        width  = 7.24,          # Science 3-column width
        height = 4.5,    # ~4.5 in
        units  = "in",
        dpi    = 300)
+
+#### Layout for Figure S1
 
 # Combine the two plots and ensure only one legend
 final_layout <- (survival_diff_plot_boot | survival_MH_BS_diff_plot_boot) +
@@ -978,12 +880,15 @@ final_layout <- (survival_diff_plot_boot | survival_MH_BS_diff_plot_boot) +
     legend.position = "bottom"
   )
 
-ggsave(here("output", "figures", "Survival_Difference.pdf"), final_layout, 
+ggsave(here("output", "figures", "FigureS1.pdf"), final_layout, 
        width  = 7.24,          # Science 3-column width
        height = 4.5,    # ~4.5 in
        units  = "in",
        dpi    = 300)
 
+
+
+###########   Create Figure S3 - Run cumulative effects on ordinal and high burn severity ###########
 
 ###### Ordinal Burn Severity
 
@@ -1272,6 +1177,8 @@ if (type == "High"){
 plot1 <- readRDS(here("output", "event_plotBURNSEV_HIGH.rds"))
 plot2 <- readRDS(here("output", "event_plotBURNSEV.rds"))
 
+#### Layout for Figure S3
+
 # Combine the two plots and ensure only one legend
 final_layout <- (plot1 | survival_H_BS_plot_boot) / (plot2 | survival_BS_plot_boot) +
   plot_layout(guides = "collect") +  # <- collect shared legend
@@ -1295,7 +1202,7 @@ final_layout <- (plot1 | survival_H_BS_plot_boot) / (plot2 | survival_BS_plot_bo
     legend.position = "bottom"
   )
 
-ggsave(here("output", "figures", "EventStudy_Survival_High_Ordinal_BS.pdf"), final_layout, 
+ggsave(here("output", "figures", "FigureS3.pdf"), final_layout, 
        width  = 7.24,          # Science 3-column width
        height = 6,    # ~4.5 in
        units  = "in",
@@ -1304,9 +1211,11 @@ ggsave(here("output", "figures", "EventStudy_Survival_High_Ordinal_BS.pdf"), fin
 
 ##################    Benefit-Cost Analysis   ##################
 
+###### Step 1. Create Table 1 A) & B) ######
+
 #### Counterfactual Acres Burned - With and Without Treatment
 
-## Option 1 - Get predicted burn probabilities for each grid - multiply it by the acres in a plot 
+## Using survival probabilities multiply it by the acres (or assets at risk) in a plot to estimate acres burned (or other savings) under the no treatment counterfactual
 
 treated_data <- mutate(treated_data, Acres_Burned_With_Treat = survival_with_treatment*Grid_Acres,
                        Acres_Burned_No_Treat = survival_without_treatment*Grid_Acres,
@@ -1385,11 +1294,8 @@ CO2_savings_pct <- (sum(treated_data$CO2_No_Treat, na.rm = T) - sum(treated_data
 PM25_savings
 CO2_savings
 
-
-
 carbon_savings <- (sum(treated_data$CO2_No_Treat, na.rm = T) - sum(treated_data$CO2_With_Treat, na.rm = T))*185 # CO2 * Carbon price
 carbon_savings
-
 
 #### Health Costs
 
@@ -1403,20 +1309,6 @@ treated_data <- mutate(treated_data,
                        EarningsLoss_With_Treat = Acres_Burned_With_Treat*EarningsLoss_PER_ACRE,
                        EarningsLoss_No_Treat = Acres_Burned_No_Treat*EarningsLoss_PER_ACRE,
                        EarningsLoss_Realized = Acres_Burned_Realized*EarningsLoss_PER_ACRE)
-
-# Comment if don't want to use conservative imputed costs
-
-# treated_data <- mutate(treated_data,
-#                        Deaths_With_Treat = ifelse(exposure_predicted == T, NA, Acres_Burned_With_Treat*Deaths_PER_ACRE),
-#                        Deaths_No_Treat = ifelse(exposure_predicted == T, NA, Acres_Burned_No_Treat*Deaths_PER_ACRE),
-#                        Deaths_Realized = ifelse(exposure_predicted == T, NA, Acres_Burned_Realized*Deaths_PER_ACRE),
-#                        DeathCost_With_Treat = ifelse(exposure_predicted == T, NA, Acres_Burned_With_Treat*DeathCost_PER_ACRE),
-#                        DeathCost_No_Treat = ifelse(exposure_predicted == T, NA, Acres_Burned_No_Treat*DeathCost_PER_ACRE),
-#                        DeathCost_Realized = ifelse(exposure_predicted == T, NA, Acres_Burned_Realized*DeathCost_PER_ACRE),
-#                        EarningsLoss_With_Treat = ifelse(exposure_predicted == T, NA, Acres_Burned_With_Treat*EarningsLoss_PER_ACRE),
-#                        EarningsLoss_No_Treat = ifelse(exposure_predicted == T, NA, Acres_Burned_No_Treat*EarningsLoss_PER_ACRE),
-#                        EarningsLoss_Realized = ifelse(exposure_predicted == T, NA, Acres_Burned_Realized*EarningsLoss_PER_ACRE))
-
 
 Saved_Deaths <- sum(treated_data$Deaths_No_Treat, na.rm = T) - sum(treated_data$Deaths_With_Treat, na.rm = T) # Saved Deaths
 Saved_Deaths_pct <- (sum(treated_data$Deaths_No_Treat, na.rm = T) - sum(treated_data$Deaths_With_Treat, na.rm = T))/sum(treated_data$Deaths_Realized, na.rm = T)
@@ -1435,58 +1327,13 @@ Earnings_savings
 
 Health_Savings <- Death_savings + Earnings_savings
 
-##### Now lets add additional fires
-
-# Grids_2006_2017 <- read_csv(here("data", "intermediate", "Extra_Fires_v3_24L.csv"))
-# 
-# extra_treated_data <- Grids_2006_2017 %>% filter(Treated_Dir == 1 & Burn_Right_Away == 0) %>% filter(time_to_treat %in% seq(-1,4,1))
-# 
-# extra_treated_data <- mutate(extra_treated_data,
-#                              Acres_Burned_With_Treat = BURN*Grid_Acres)
-# 
-# 
-# extra_treated_data <- mutate(extra_treated_data, 
-#                              PM25_With_Treat = Acres_Burned_With_Treat*FIRE_PM25_PER_ACRE,
-#                              CO2_With_Treat = Acres_Burned_With_Treat*FIRE_CO2_PER_ACRE,
-#                              Deaths_With_Treat = Acres_Burned_With_Treat*Deaths_PER_ACRE,
-#                              DeathCost_With_Treat = Acres_Burned_With_Treat*DeathCost_PER_ACRE,
-#                              EarningsLoss_With_Treat = Acres_Burned_With_Treat*EarningsLoss_PER_ACRE)
-# 
-# 
-# acres_burned_extra_savings <- acres_burned_savings_pct*sum(extra_treated_data$Acres_Burned_With_Treat, na.rm = T)
-# PM25_extra_savings <- PM25_savings_pct*sum(extra_treated_data$PM25_With_Treat, na.rm = T)
-# CO2_extra_savings <- CO2_savings_pct*185*sum(extra_treated_data$CO2_With_Treat, na.rm = T)
-# Saved_Deaths_extra <- Saved_Deaths_pct*sum(extra_treated_data$Deaths_With_Treat, na.rm = T)
-# DeathCosts_extra_savings <- Death_savings_pct*sum(extra_treated_data$DeathCost_With_Treat, na.rm = T)
-# EarningsLoss_extra_savings <- Earnings_savings_pct*sum(extra_treated_data$EarningsLoss_With_Treat, na.rm = T)
-# 
-# 
-# ## Update savings with extra fires
-# 
-# acres_burned_savings <- acres_burned_savings + acres_burned_extra_savings
-# PM25_savings <- PM25_savings + PM25_extra_savings
-# carbon_savings <- carbon_savings + CO2_extra_savings
-# Saved_Deaths <- Saved_Deaths + Saved_Deaths_extra
-# 
-# Health_Savings <- Health_Savings + DeathCosts_extra_savings + EarningsLoss_extra_savings
-
-#### Calculate Treatment Costs
-
-# Load Functions 
-
-source(here("code", "functions","tidy_facts.R"))
-source(here("code", "functions","calculate_distance.R"))
-st_erase = function(x, y) st_difference(x, st_make_valid(st_union(st_combine(y)))) # Taken from here https://r-spatial.github.io/sf/reference/geos_binary_ops.html
-
-########    Load in Datasets    ########
+######## Calculate treatment costs for the treatments in our sample & Estimate the probability of treatment intersecting with a fire over its life time for all treatments in the Western U.S. ########
 
 #### FACTS - Forest Service Fuel Treatments
 
 facts <- st_read(here("data", "raw", "FACTS", "S_USA.Activity_HazFuelTrt_PL.shp"))
 facts <- tidy_facts(facts, inf_yr = 2023, crs = 5070)
 facts$ROW_ID <- 1:nrow(facts)
-
-# facts_filt <- filter(facts, COMPLETE == 1) %>% filter(YEAR >= 2007 & YEAR <= 2013)
 
 states <- c("WA", "OR", "CA", "ID", "NV", "AZ", "MT", "UT", "NM", "WY", "CO")
 
@@ -1507,81 +1354,22 @@ mtbs <- filter(mtbs, FIRE_TYPE == "Unknown" | FIRE_TYPE == "Wildfire") # No Wild
 
 mtbs_filt <- filter(mtbs, YEAR_MTBS >= 2004)
 
+######## Estimate the probability of fuel treatment interacting with a fire over its life time by using survival function approach - Kaplan-Meier Estimator
 
-# #### Option 1 - Calculate lambda by 2006-2013 treatments
-# 
-# facts_act_grouped <- facts_west %>%
-#   filter(YEAR >= 2006 & YEAR <= 2013) %>%
-#   group_by(ACTIVITY_UNIT_CN) %>%
-#   summarise(geometry = st_union(geometry), 
-#             YEAR_COMP = max(YEAR))
-# 
-# facts_act_grouped$Acres_Treated <- as.numeric(st_area(facts_act_grouped)/4046.86)
-# 
-# facts_act_grouped <- filter(facts_act_grouped, YEAR_COMP >= 2004)
-# 
-# 
-# #### Intersect FACTS with MTBS to get estimate of lambda
-# 
-# facts_mtbs_int <- st_intersection(facts_act_grouped, mtbs_filt)
-# 
-# activities_int <- as.data.frame(facts_mtbs_int) %>%
-#   filter(YEAR_COMP <= YEAR_MTBS) %>%
-#   filter(YEAR_MTBS - YEAR_COMP <= 10) %>%
-#   group_by(ACTIVITY_UNIT_CN) %>%
-#   summarise(INTERSECTS = 1)
-# 
-# facts_act_grouped_df <- merge(as.data.frame(facts_act_grouped), activities_int, by = "ACTIVITY_UNIT_CN",all.x = T)
-# facts_act_grouped_df <- dplyr::select(facts_act_grouped_df, -geometry)
-# facts_act_grouped_df[is.na(facts_act_grouped_df$INTERSECTS), "INTERSECTS"] <- 0
-# 
-# treated_data_filt <- filter(treated_data, YEAR %in% seq(2017,2023,1))
-# 
-# quantiles <- quantile(treated_data_filt$TREAT_SIZE, probs = c(1/3,2/3,1)) 
-# 
-# q1 <- as.numeric(quantiles[1])
-# q2 <- as.numeric(quantiles[2])
-# q3 <- as.numeric(quantiles[3])
-# 
-# lambda_1 <- mean(filter(facts_act_grouped_df, Acres_Treated < q1)$INTERSECTS, na.rm = T)
-# lambda_2 <- mean(filter(facts_act_grouped_df, Acres_Treated >= q1 & Acres_Treated <= q2)$INTERSECTS, na.rm = T)
-# lambda_3 <- mean(filter(facts_act_grouped_df, Acres_Treated > q2)$INTERSECTS, na.rm = T)
-# 
-# 
-# treated_data_filt <- mutate(treated_data_filt, lambda = case_when(TREAT_SIZE < q1 ~ lambda_1,
-#                                                                   TREAT_SIZE >= q1 & TREAT_SIZE <= q2 ~ lambda_2,
-#                                                                   TREAT_SIZE > q2 ~ lambda_3,))
-# 
-# treated_data_filt <- mutate(treated_data_filt, Size_Bin = case_when(TREAT_SIZE < q1 ~ "Small",
-#                                                                     TREAT_SIZE >= q1 & TREAT_SIZE <= q2 ~ "Medium",
-#                                                                     TREAT_SIZE > q2 ~ "Large",))
-# 
-# treat_ids <- unique(treated_data_filt$TREAT_ID)
-# treat_ids <- treat_ids[!is.na(treat_ids)]
-# 
-# treatment_costs <- treated_data_filt %>%
-#   group_by(TREAT_ID) %>%
-#   summarise(TREAT_COST = dplyr::first(TREAT_COST), 
-#             lambda = dplyr::first(lambda),
-#             Size_Bin = dplyr::first(Size_Bin),
-#             YEAR_COMPLETE = dplyr::first(YEAR) - dplyr::first(YEARS_SINCE_TREAT) 
-#             )
-# 
-# Benefit_Cost_Ratio_Conditional = (house_val_savings + carbon_savings + Health_Savings)/Treat_Cost
-
-
-#### Option 2 - Estimate lambda using survival function approach - Kaplan-Meier Estimator
+## For each project in FACTS take its union and note when its completed
 
 facts_act_grouped <- facts_west_filt %>%
   group_by(ACTIVITY_UNIT_CN) %>%
   summarise(geometry = st_union(geometry), 
             YEAR_COMP = max(YEAR), 
             YEAR_COMP_MIN = min(YEAR))
-
+# Calculate acres treated by its footprint
 facts_act_grouped$Acres_Treated <- as.numeric(st_area(facts_act_grouped)/4046.86)
 
+# intersect projects with MTBS
 facts_mtbs_int <- st_intersection(facts_act_grouped, mtbs_filt)
 
+# Only count projects that intersect with projects completed at least 10 years prior to fire
 activities_int <- as.data.frame(facts_mtbs_int) %>%
   filter(YEAR_COMP <= YEAR_MTBS | YEAR_COMP_MIN <= YEAR_MTBS) %>%
   filter(YEAR_MTBS - YEAR_COMP <= 10 | YEAR_MTBS - YEAR_COMP_MIN <= 10) %>%
@@ -1589,7 +1377,6 @@ activities_int <- as.data.frame(facts_mtbs_int) %>%
   summarise(INTERSECTS = 1)
 
 facts_act_grouped <- merge(facts_act_grouped, activities_int, by = "ACTIVITY_UNIT_CN", all.x = T)
-
 facts_act_grouped[is.na(facts_act_grouped$INTERSECTS), "INTERSECTS"] <- 0
 
 # Compute time-to-event and censoring indicator
@@ -1597,41 +1384,23 @@ facts_act_grouped$event_time <- pmin(2023 - facts_act_grouped$YEAR_COMP, 10)  # 
 
 facts_act_grouped <- as.data.frame(facts_act_grouped)
 
-# Fit Kaplan-Meier survival curve
-km_fit <- survfit(Surv(event_time, INTERSECTS) ~ 1, data = facts_act_grouped)
-
-# Plot survival curve
-ggsurvplot(km_fit, conf.int = TRUE, ggtheme = theme_minimal())
-
-# Estimate lambda (probability of intersection within 10 years)
-lambda_estimate <- 1 - summary(km_fit, times = 10)$surv
-print(lambda_estimate)
-
+#### Estimate effects by size category: small = 75-600 acres, medium = 600-2400 acres, large > 2,400 acres.
 
 treated_data_filt <- filter(treated_data, YEAR %in% seq(2017,2023,1))
-
 quantiles <- quantile(treated_data_filt$TREAT_SIZE, probs = c(1/3,2/3,1)) 
-
-# q1 <- as.numeric(quantiles[1])
-# q2 <- as.numeric(quantiles[2])
-# q3 <- as.numeric(quantiles[3])
 
 q1 <- 600
 q2 <- 2400
-
-
 q_05 <- quantile(treated_data_filt$TREAT_SIZE, probs = .05) 
 
 facts_act_grouped_small <- filter(facts_act_grouped, Acres_Treated > q_05 & Acres_Treated < q1)
 facts_act_grouped_medium <- filter(facts_act_grouped, Acres_Treated >= q1 & Acres_Treated <= q2)
 facts_act_grouped_large <- filter(facts_act_grouped, Acres_Treated > q2)
 
-
 # Fit Kaplan-Meier survival curve
 km_fit_1 <- survfit(Surv(event_time, INTERSECTS) ~ 1, data = facts_act_grouped_small)
 km_fit_2 <- survfit(Surv(event_time, INTERSECTS) ~ 1, data = facts_act_grouped_medium)
 km_fit_3 <- survfit(Surv(event_time, INTERSECTS) ~ 1, data = facts_act_grouped_large)
-
 
 # Estimate lambda (probability of intersection within 10 years)
 lambda_1 <- 1 - summary(km_fit_1, times = 10)$surv
@@ -1659,29 +1428,21 @@ treatment_costs <- treated_data_filt %>%
             TREAT_SIZE = dplyr::first(TREAT_SIZE)
   )
 
-
-Treat_Cost <- sum(treatment_costs$TREAT_COST, na.rm = T)
-
-## Identify observations with high cost/acre - replace such treatments with median cost-acre
+## Identify observations with high cost/acre (those above 10 SD of the mean) - replace such treatments with median cost-acre
 
 mean_cost <- mean(facts_west$COST_PER_UOM, na.rm = TRUE)
 sd_cost <- sd(facts_west$COST_PER_UOM, na.rm = TRUE)
 threshold <- mean_cost + 10*sd_cost
 median_cost <- median(facts_west$COST_PER_UOM, na.rm = TRUE)
 
-
 outliers <- unique(filter(facts_west, COST_PER_UOM > threshold)$ACTIVITY_UNIT_CN)
-
 treatment_costs <- mutate(treatment_costs, TREAT_COST_REP = ifelse(TREAT_ID %in% outliers, TREAT_SIZE*median_cost, TREAT_COST))
-
 
 Treat_Cost <- sum(treatment_costs$TREAT_COST_REP, na.rm = T)
 Avoided_Damages_Baseline <- house_val_savings + carbon_savings + Health_Savings
 Benefit_Cost_Ratio_Conditional = Avoided_Damages_Baseline/Treat_Cost
 
-
-
-###### Calculate Benefits
+######## Table 1 A)
 
 Physical_Savings_df <- data.frame(matrix(ncol = 5, nrow = 1))
 
@@ -1695,6 +1456,7 @@ Physical_Savings_df[1, ] <- c(
   prettyNum(round(Saved_Deaths, digits = 0), scientific = F, big.mark = ",")
 )
 
+######## Table 1 B)
 
 Counterfactual_Benefits_df <- data.frame(matrix(ncol = 5, nrow = 1))
 
@@ -1714,24 +1476,26 @@ notes <- "\\parbox[t]{\\textwidth}{\\footnotesize{The following table shows the 
 # Convert to a single line string
 notes_single_line <- gsub("\n", " ", notes)
 
-stargazer(Counterfactual_Benefits_df, 
-          title = ("\\label{tab:CounterfactualAnalysis} Counterfactual Benefits of USFS Fuel Treatments"), 
-          summary = F,
-          digits = 0,
-          type = "latex", 
-          out = here("output", "tables", "CounterfactualAnalysis.tex"),
-          rownames = F,
-          colnames = T, 
-          notes = notes_single_line,
-          column.sep.width = "-4pt",
-          notes.align = "l"
-)
+######## Save Table 1 A) & B)
 
 stargazer(Physical_Savings_df, 
           title = ("\\label{tab:CounterfactualAnalysis} Counterfactual Benefits of USFS Fuel Treatments"), 
           summary = F,
           digits = 0,
+          out = here("output", "tables", "Table1a.tex"),
+          rownames = F,
+          colnames = T, 
+          notes = notes_single_line,
+          column.sep.width = "-4pt",
+          notes.align = "l"
+)
+
+stargazer(Counterfactual_Benefits_df, 
+          title = ("\\label{tab:CounterfactualAnalysis} Counterfactual Benefits of USFS Fuel Treatments"), 
+          summary = F,
+          digits = 0,
           type = "latex", 
+          out = here("output", "tables", "Table1b.tex"),
           rownames = F,
           colnames = T, 
           notes = notes_single_line,
@@ -1740,9 +1504,11 @@ stargazer(Physical_Savings_df,
 )
 
 
-###### Calculate Size Specific Benefits
+############    Calculate Table 1 C) - Ex ante BCR analysis  ############
 
-## Cost per size bin
+###### First calculate average benefit, conditional on fire arrival, per size class 
+
+## Aggregate savings in each size bin
 
 Treat_Size_Benefits <- treated_data_filt %>%
   group_by(Size_Bin) %>%
@@ -1756,11 +1522,7 @@ Treat_Size_Benefits <- treated_data_filt %>%
             lambda = dplyr::first(lambda))
 
 Treat_Size_Benefits <- mutate(Treat_Size_Benefits, Total_Benefit = House_Savings + Carbon_Savings + Death_Savings)
-Treat_Size_Benefits <- mutate(Treat_Size_Benefits, Benefit_Per_Treat = Total_Benefit/N_Treats)
-
-#### Benefit per Treatment
-
-sum(Treat_Size_Benefits$Total_Benefit)/sum(Treat_Size_Benefits$N_Treats)
+Treat_Size_Benefits <- mutate(Treat_Size_Benefits, Benefit_Per_Treat = Total_Benefit/N_Treats) # Average benefit per treatment
 
 #### Benefit Cost Ratios for different sized treatments
 
@@ -1768,56 +1530,8 @@ mu_1 <- filter(Treat_Size_Benefits, Size_Bin == "Small")$Benefit_Per_Treat
 mu_2 <- filter(Treat_Size_Benefits, Size_Bin == "Medium")$Benefit_Per_Treat
 mu_3 <- filter(Treat_Size_Benefits, Size_Bin == "Large")$Benefit_Per_Treat
 
-#### Average Benefit Per Acres
-
-Treat_Sizes <- treated_data_filt %>%
-  group_by(TREAT_ID) %>%
-  summarise(Size_Bin = dplyr::first(Size_Bin), 
-            TREAT_SIZE = dplyr::first(TREAT_SIZE),
-  )
-
-Size_Bin_Acres_Treated <- Treat_Sizes %>%
-  group_by(Size_Bin) %>%
-  summarise(Total_Acres_Treated = sum(TREAT_SIZE))
-
-Treat_Size_Benefits <- merge(Treat_Size_Benefits, Size_Bin_Acres_Treated, by = "Size_Bin", all.x = T)
-
-Treat_Size_Benefits <- mutate(Treat_Size_Benefits, Benefit_Per_Acre = Total_Benefit/Total_Acres_Treated)
-
-mu_perA_1 <- filter(Treat_Size_Benefits, Size_Bin == "Small")$Benefit_Per_Acre
-mu_perA_2 <- filter(Treat_Size_Benefits, Size_Bin == "Medium")$Benefit_Per_Acre
-mu_perA_3 <- filter(Treat_Size_Benefits, Size_Bin == "Large")$Benefit_Per_Acre
-
-
-
-#### Costs  based on bin size
-
-Cost_Size_Bin <- treatment_costs %>%
-  group_by(Size_Bin) %>%
-  summarise(Cost = sum(TREAT_COST_REP, na.rm = T))
-
-C_1 <- filter(Cost_Size_Bin, Size_Bin == "Small")$Cost
-C_2 <- filter(Cost_Size_Bin, Size_Bin == "Medium")$Cost
-C_3 <- filter(Cost_Size_Bin, Size_Bin == "Large")$Cost
-
-B_1 <- filter(Treat_Size_Benefits, Size_Bin == "Small")$Total_Benefit
-B_2 <- filter(Treat_Size_Benefits, Size_Bin == "Medium")$Total_Benefit
-B_3 <- filter(Treat_Size_Benefits, Size_Bin == "Large")$Total_Benefit
-
-#### Conditional B-C Ratios & Conditional ROI
-
-BC_1 <- B_1/C_1
-BC_2 <- B_2/C_2
-BC_3 <- B_3/C_3
-
-ROI_1 <- BC_1^(1/10)
-ROI_2 <- BC_2^(1/10)
-ROI_3 <- BC_3^(1/10)
-
-c(BC_1, BC_2, BC_3)
-c(ROI_1, ROI_2, ROI_3)
-
-#### Calculate the Ex-ante B/C Ratio for treatments completed 2007-2023
+#### Calculate the Ex-ante B/C Ratio for USFS treatments that could have intersected with the wildfires in our 
+####    sample during their effective lifetime (10 years) - i.e. those completed from 2007-2023. 
 
 facts_act_grouped_06_23 <- facts_west %>%
   filter(YEAR >= 2007 & YEAR <= 2023) %>%
@@ -1832,6 +1546,7 @@ facts_act_grouped_06_23$TREAT_SIZE <- as.numeric(st_area(facts_act_grouped_06_23
 
 facts_act_grouped_06_23 <- as.data.frame(facts_act_grouped_06_23)
 
+## For each treatment note its estimated probability of fire interaction (lambda) and its benefit conditional on fire (mu) based on its size.
 
 facts_act_grouped_06_23 <- mutate(facts_act_grouped_06_23, lambda = case_when(TREAT_SIZE < q1 ~ lambda_1,
                                                                               TREAT_SIZE >= q1 & TREAT_SIZE <= q2 ~ lambda_2,
@@ -1844,12 +1559,10 @@ facts_act_grouped_06_23 <- mutate(facts_act_grouped_06_23, Size_Bin = case_when(
                                                                                 TREAT_SIZE >= q1 & TREAT_SIZE <= q2 ~ "Medium",
                                                                                 TREAT_SIZE > q2 ~ "Large"))
 
+## Estimated benefits are the product of estimated probability of interacting with a fire times its estimated benefits: i.e. lambda * mu
 
 facts_act_grouped_06_23 <- mutate(facts_act_grouped_06_23, Benefits = mu*lambda, 
                                   Benefit_Cost = Benefits/TOT_COST)
-
-# facts_act_grouped_06_23 <- filter(facts_act_grouped_06_23, ACCOMPLISHED_ACRES > 0)
-
 
 ## Identify observations with high cost/acre
 
@@ -1857,42 +1570,59 @@ mean_cost <- mean(facts_west$COST_PER_UOM, na.rm = TRUE)
 sd_cost <- sd(facts_west$COST_PER_UOM, na.rm = TRUE)
 threshold <- mean_cost + 10*sd_cost
 
+## Remove observations with misreported costs from the analysis - i.e. those with cost/acre above 10 SD of the mean cost/acre
 
 facts_act_grouped_06_23_filt <- filter(facts_act_grouped_06_23, COST_PER_UOM <= threshold)
 
-ex <- filter(facts_act_grouped_06_23, ACTIVITY_UNIT_CN == "6150108010602") # one treatment that cost 1 billion USD
+ex <- filter(facts_act_grouped_06_23, ACTIVITY_UNIT_CN == "6150108010602") # one treatment that cost 1 billion USD - most likley misreported
 
-BCR_Overall <- sum(facts_act_grouped_06_23_filt$Benefits)/sum(facts_act_grouped_06_23_filt$TOT_COST)
-
-BCR_Overall
-
-mean(facts_act_grouped_06_23_filt$Benefit_Cost)
-median(facts_act_grouped_06_23_filt$Benefit_Cost)
+## Filter treatments that are above 75 acres in analysis (this makes the BCR smaller but our analysis is based on identifying treatment effects of sufficiently large treatments).
 
 facts_act_grouped_06_23_filt_1 <- filter(facts_act_grouped_06_23_filt, TREAT_SIZE > q_05)
 
 BCR_Overall <- sum(facts_act_grouped_06_23_filt_1$Benefits)/sum(facts_act_grouped_06_23_filt_1$TOT_COST)
-mean(facts_act_grouped_06_23_filt_1$Benefit_Cost)
 Median_BC <- median(facts_act_grouped_06_23_filt_1$Benefit_Cost)
 
 
 #### Ex ante B-C Ratio by Treatment Size Bins: "Small" (75-600), "Medium" (600-2400), "Large" (>2400)
-
-q_05 <- quantile(treated_data_filt$TREAT_SIZE, probs = .05) 
-
-C_1 <- mean(filter(facts_act_grouped_06_23_filt, TREAT_SIZE > q_05 & TREAT_SIZE <= q1)$TOT_COST, na.rm = T)
-C_2 <- mean(filter(facts_act_grouped_06_23_filt, TREAT_SIZE > q1 & TREAT_SIZE <= q2)$TOT_COST, na.rm = T)
-C_3 <- mean(filter(facts_act_grouped_06_23_filt, TREAT_SIZE > q2)$TOT_COST, na.rm = T)
 
 BC_Large <- sum(filter(facts_act_grouped_06_23_filt, TREAT_SIZE > q2)$Benefits)/sum(filter(facts_act_grouped_06_23_filt, TREAT_SIZE > q2)$TOT_COST)
 BC_Medium <- sum(filter(facts_act_grouped_06_23_filt, TREAT_SIZE > q1 & TREAT_SIZE <= q2)$Benefits)/sum(filter(facts_act_grouped_06_23_filt, TREAT_SIZE > q1 & TREAT_SIZE <= q2)$TOT_COST)
 BC_Small <- sum(filter(facts_act_grouped_06_23_filt, TREAT_SIZE > q_05 & TREAT_SIZE <= q1)$Benefits)/sum(filter(facts_act_grouped_06_23_filt, TREAT_SIZE > q_05 & TREAT_SIZE <= q1)$TOT_COST)
 
 
-c(BC_Large, BC_Medium, BC_Small)
+###### Table 1 C)
+
+c(BC_Small, BC_Medium, BC_Large, BCR_Overall, Median_BC)
 
 
-## Create Table of Robustness of BCR Estimates by different specifications
+Ex_Ante_BCRs_df <- data.frame(matrix(ncol = 5, nrow = 1))
+
+colnames(Ex_Ante_BCRs_df) <- c("Small (75-600)",  "Medium (600-2400)", "Large (>2400)", "Total", "Median")
+
+Ex_Ante_BCRs_df[1, ] <- c(
+  paste0(prettyNum(round(BC_Small, digits = 2), scientific = F, big.mark = ",")),
+  paste0(prettyNum(round(BC_Medium, digits = 2), scientific = F, big.mark = ",")),
+  paste0(prettyNum(round(BC_Large, digits = 2), scientific = F, big.mark = ",")), 
+  paste0(prettyNum(round(BCR_Overall, digits = 2), scientific = F, big.mark = ",")), 
+  paste0(round(Median_BC, digits = 2))
+)
+
+##Save Table 1 C)
+
+stargazer(Ex_Ante_BCRs_df, 
+          title = ("\\label{tab:CounterfactualAnalysis} Counterfactual Benefits of USFS Fuel Treatments"), 
+          summary = F,
+          digits = 0,
+          out = here("output", "tables", "Table1c.tex"),
+          rownames = F,
+          colnames = T, 
+          notes = notes_single_line,
+          column.sep.width = "-4pt",
+          notes.align = "l"
+)
+
+############   Create Table of Robustness of BCR Estimates by different specifications
 
 N_Treats_Baseline <- sum(Treat_Size_Benefits$N_Treats)
 
@@ -1908,7 +1638,7 @@ Robustness[1, ] <- c(
   "2017-2023"
 )
 
-###### Alternative Benefit-Cost Ratio's with estimated costs
+############ Alternative Benefit-Cost Ratio's with estimated costs
 
 AVG_COST_FOOTPRINT_ACRE <- 400.9842 # taken from "DescriptiveStats.R"
 
@@ -1918,13 +1648,9 @@ facts_act_grouped_06_23 <- mutate(facts_act_grouped_06_23, TOT_COST_ALT = TREAT_
 facts_act_grouped_06_23_filt_2 <- filter(facts_act_grouped_06_23, TREAT_SIZE > q_05)
 
 BCR_Overall_Alt <- sum(facts_act_grouped_06_23_filt_2$Benefits)/sum(facts_act_grouped_06_23_filt_2$TOT_COST_ALT)
-BCR_Overall_Alt
 BC_Large_Alt <- sum(filter(facts_act_grouped_06_23_filt_2, TREAT_SIZE > q2)$Benefits)/sum(filter(facts_act_grouped_06_23_filt_2, TREAT_SIZE > q2)$TOT_COST_ALT)
 BC_Medium_Alt <- sum(filter(facts_act_grouped_06_23_filt_2, TREAT_SIZE > q1 & TREAT_SIZE <= q2)$Benefits)/sum(filter(facts_act_grouped_06_23_filt_2, TREAT_SIZE > q1 & TREAT_SIZE <= q2)$TOT_COST_ALT)
 BC_Small_Alt <- sum(filter(facts_act_grouped_06_23_filt_2, TREAT_SIZE > q_05 & TREAT_SIZE <= q1)$Benefits)/sum(filter(facts_act_grouped_06_23_filt_2, TREAT_SIZE > q_05 & TREAT_SIZE <= q1)$TOT_COST_ALT)
-
-
-c(BC_Large_Alt, BC_Medium_Alt, BC_Small_Alt)
 
 Robustness[2, ] <- c(
   round(BCR_Overall_Alt, digits = 2),
@@ -1932,8 +1658,7 @@ Robustness[2, ] <- c(
   "2017-2023"
 )
 
-
-###### Calculate BCRs with discounting
+############    Table S9 - Calculate BCRs with different discount rates   ############
 
 # Define discount rates and years
 discount_rates <- c(0.03, 0.05, 0.08)
@@ -2017,7 +1742,7 @@ stargazer(bc_table,
           summary = F,
           digits = 2,
           type = "latex", 
-          out = here("output", "tables", "BenefitCostRatios.tex"),
+          out = here("output", "tables", "TableS9.tex"),
           rownames = F,
           colnames = T, 
           notes = notes_single_line,
@@ -2025,17 +1750,7 @@ stargazer(bc_table,
           notes.align = "l"
 )
 
-
-#### Calculate Ex Ante Annualized Rate of Return
-
-## ROI = [(mu * lambda)/C]^[1/T], mu is average yearly benefits, lambda is probability of intersecting a fire in 10 years, C is cost of a fuel treatment
-
-ROI_Small <- BC_Small^(1/10)
-ROI_Medium <- BC_Medium^(1/10)
-ROI_Large <- BC_Large^(1/10)
-
-c(ROI_Small, ROI_Medium, ROI_Large)
-
+############    Create Figure S6 - Probability of fuel treatment fire interaction by treatment size   ############
 
 ########   Distribution of lambda and mu by treatment size
 
@@ -2115,18 +1830,23 @@ lambda_plot <- ggplot(km_df, aes(x = time, y = surv, color = strata)) +
   ) +
   coord_cartesian(clip = "off")  # Prevents cropping of axis lines
 
+#### layout of Figure S6
+
 final_plot <- lambda_plot +
   plot_layout(guides = "collect") &   # <- collect shared legend
   theme(legend.position = "bottom")  # <- move legend to bottom
 
+#### save Figure S6
 
-ggsave(here("output", "figures", "TreatmentInteractionSurvival.pdf"), final_plot, 
+ggsave(here("output", "figures", "FigureS6.pdf"), final_plot, 
        width  = 7.24,          # Science 3-column width
        height = 4.5,    # ~4.22 in
        units  = "in",
        dpi    = 300)
 
 
+
+############    Create Figure S4 - Cumulative effects by treatment size   ############
 
 #### Survival Plots for each treatment size
 
@@ -2173,54 +1893,18 @@ final_layout <- (small_survival_plot | medium_survival_plot | large_survival_plo
     
   )
 
-ggsave(here("output", "figures", "SurvivalSizeHeterogeneity.pdf"), final_layout,
+#### layout of Figure S4
+
+ggsave(here("output", "figures", "FigureS4.pdf"), final_layout,
        width  = 7.24,          # Science 3-column width
        height = 8,    # ~4.22 in
        units  = "in",
        dpi    = 300)
 
 
-
-row_title1 <- wrap_elements(
-  full = grid::textGrob(
-    "Unconditional Burn Probability", 
-    gp = gpar(fontsize = 20, fontface = "bold")
-  ))
-
-row_title2 <- wrap_elements(
-  full = grid::textGrob(
-    "Unconditional Burn Severity", 
-    gp = gpar(fontsize = 20, fontface = "bold")
-  ))
-
-# Combine plots into rows
-burn_prob_row <- small_survival_plot | medium_survival_plot | large_survival_plot
-burn_sev_row  <- small_survival_BS_plot | medium_survival_BS_plot | large_survival_BS_plot
-
-# Final layout with row titles
-final_layout <- (
-  burn_prob_row / burn_sev_row
-) +
-  plot_layout(guides = "collect") +
-  plot_annotation(tag_levels = "a",
-                  title = "Unconditional Burn Probability & Burn Severity by Treatment Size Category",
-                  theme = theme(
-                    plot.title = element_text(size = 22, face = "bold"),
-                    plot.subtitle = element_text(size = 12)
-                  )
-  ) &
-  theme(legend.position = "bottom")
-
-# Print the final plot
-final_layout
-
-
-ggsave(here("output", "figures", "SurvivalSizeHeterogeneity.pdf"), final_layout, width = 16, height = 12, units = "in")
-
-
-
-
 ###### Drop Imputation Smoke costs in BCR calculation (2017-2023)  ######
+
+## In this robustness check for the fires with predicted PM2.5 smoke exposure we drop their health benefits - i.e. set equal to zero
 
 treated_data <- mutate(treated_data,
                        Deaths_With_Treat = ifelse(exposure_predicted == T, NA, Acres_Burned_With_Treat*Deaths_PER_ACRE),
@@ -2250,6 +1934,9 @@ Earnings_savings_pct <- (sum(treated_data$EarningsLoss_No_Treat, na.rm = T) - su
 Earnings_savings
 
 Health_Savings <- Death_savings + Earnings_savings
+
+
+# Reset new "treated_data_filt" to incorporate the new benefits
 
 treated_data_filt <- filter(treated_data, YEAR %in% seq(2017,2023,1))
 
@@ -2288,10 +1975,11 @@ outliers <- unique(filter(facts_west, COST_PER_UOM > threshold)$ACTIVITY_UNIT_CN
 
 treatment_costs <- mutate(treatment_costs, TREAT_COST_REP = ifelse(TREAT_ID %in% outliers, TREAT_SIZE*median_cost, TREAT_COST))
 
-
 Treat_Cost <- sum(treatment_costs$TREAT_COST_REP, na.rm = T)
 Avoided_Damages_Baseline <- house_val_savings + carbon_savings + Health_Savings
 Benefit_Cost_Ratio_Conditional = Avoided_Damages_Baseline/Treat_Cost
+
+## Aggregate savings in each size bin
 
 Treat_Size_Benefits <- treated_data_filt %>%
   group_by(Size_Bin) %>%
@@ -2313,7 +2001,7 @@ mu_1 <- filter(Treat_Size_Benefits, Size_Bin == "Small")$Benefit_Per_Treat
 mu_2 <- filter(Treat_Size_Benefits, Size_Bin == "Medium")$Benefit_Per_Treat
 mu_3 <- filter(Treat_Size_Benefits, Size_Bin == "Large")$Benefit_Per_Treat
 
-#### Calculate the Ex-ante B/C Ratio for treatments completed 2007-2023
+#### Calculate the Ex-ante B/C Ratio for treatments completed 2007-2023 using new conditional benefit estimates
 
 facts_act_grouped_06_23 <- mutate(facts_act_grouped_06_23, lambda = case_when(TREAT_SIZE < q1 ~ lambda_1,
                                                                               TREAT_SIZE >= q1 & TREAT_SIZE <= q2 ~ lambda_2,
@@ -2355,6 +2043,8 @@ Robustness[3, ] <- c(
 
 
 ###### No Imputation Smoke costs for BCR calculation (2017-2020)  ######
+
+## Now for the subset of fires that we know the smoke exposures (2017-2020 fires) we calculate the ex ante BCR
 
 treated_data_noimp <- filter(treated_data, exposure_predicted == F) # filter sample to only non-imputed smoke benefits
 
@@ -2459,6 +2149,8 @@ treatment_costs <- mutate(treatment_costs, TREAT_COST_REP = ifelse(TREAT_ID %in%
 Treat_Cost <- sum(treatment_costs$TREAT_COST_REP, na.rm = T)
 Benefit_Cost_Ratio_Conditional_NoImp = Avoided_Damages_Noimp/Treat_Cost
 
+## Aggregate savings in each size bin
+
 Treat_Size_Benefits_noimp <- treated_data_noimp %>%
   group_by(Size_Bin) %>%
   summarise(Acres_Burned_Savings = sum(Acres_Burned_No_Treat - Acres_Burned_With_Treat),
@@ -2473,11 +2165,7 @@ Treat_Size_Benefits_noimp <- treated_data_noimp %>%
 Treat_Size_Benefits_noimp <- mutate(Treat_Size_Benefits_noimp, Total_Benefit = House_Savings + Carbon_Savings + Death_Savings)
 Treat_Size_Benefits_noimp <- mutate(Treat_Size_Benefits_noimp, Benefit_Per_Treat = Total_Benefit/N_Treats)
 
-#### Benefit per Treatment
-
-sum(Treat_Size_Benefits_noimp$Total_Benefit)/sum(Treat_Size_Benefits_noimp$N_Treats)
-
-#### Benefit Cost Ratios for different sized treatments
+#### New conditional benefit estimates with new sample
 
 mu_1_noimp <- filter(Treat_Size_Benefits_noimp, Size_Bin == "Small")$Benefit_Per_Treat
 mu_2_noimp <- filter(Treat_Size_Benefits_noimp, Size_Bin == "Medium")$Benefit_Per_Treat
@@ -2527,6 +2215,8 @@ Robustness[4, ] <- c(
 )
 
 ###### Imputated Smoke costs (2017-2020 fires) for BCR calculation ######
+
+## Now for the subset of fires that we know the smoke exposures (2017-2020 fires) we calculate the ex ante BCR using predicted smoke exposure
 
 treated_data_imp <- filter(treated_data, exposure_predicted == F)
 
@@ -2633,6 +2323,8 @@ Treat_Cost <- sum(treatment_costs$TREAT_COST_REP, na.rm = T)
 Avoided_Damages_NoImp <- house_val_savings + carbon_savings + Health_Savings
 Benefit_Cost_Ratio_Conditional_NoImp = Avoided_Damages_NoImp/Treat_Cost
 
+## Aggregate savings in each size bin
+
 Treat_Size_Benefits_imp <- treated_data_imp %>%
   group_by(Size_Bin) %>%
   summarise(Acres_Burned_Savings = sum(Acres_Burned_No_Treat - Acres_Burned_With_Treat),
@@ -2647,31 +2339,11 @@ Treat_Size_Benefits_imp <- treated_data_imp %>%
 Treat_Size_Benefits_imp <- mutate(Treat_Size_Benefits_imp, Total_Benefit = House_Savings + Carbon_Savings + Death_Savings)
 Treat_Size_Benefits_imp <- mutate(Treat_Size_Benefits_imp, Benefit_Per_Treat = Total_Benefit/N_Treats)
 
-#### Benefit per Treatment
-
-sum(Treat_Size_Benefits_imp$Total_Benefit)/sum(Treat_Size_Benefits_imp$N_Treats)
-
-#### Benefit Cost Ratios for different sized treatments
+#### New conditional benefit estimates with new sample
 
 mu_1_imp <- filter(Treat_Size_Benefits_imp, Size_Bin == "Small")$Benefit_Per_Treat
 mu_2_imp <- filter(Treat_Size_Benefits_imp, Size_Bin == "Medium")$Benefit_Per_Treat
 mu_3_imp <- filter(Treat_Size_Benefits_imp, Size_Bin == "Large")$Benefit_Per_Treat
-
-#### Average Benefit Per Acres
-
-Treat_Sizes <- treated_data_imp %>%
-  group_by(TREAT_ID) %>%
-  summarise(Size_Bin = dplyr::first(Size_Bin), 
-            TREAT_SIZE = dplyr::first(TREAT_SIZE),
-  )
-
-Size_Bin_Acres_Treated <- Treat_Sizes %>%
-  group_by(Size_Bin) %>%
-  summarise(Total_Acres_Treated = sum(TREAT_SIZE))
-
-Treat_Size_Benefits_imp <- merge(Treat_Size_Benefits_imp, Size_Bin_Acres_Treated, by = "Size_Bin", all.x = T)
-
-Treat_Size_Benefits_imp <- mutate(Treat_Size_Benefits_imp, Benefit_Per_Acre = Total_Benefit/Total_Acres_Treated)
 
 #### Calculate the Ex-ante B/C Ratio for treatments completed 2007-2023
 
@@ -2689,8 +2361,6 @@ facts_act_grouped_06_23 <- mutate(facts_act_grouped_06_23, Size_Bin = case_when(
 
 facts_act_grouped_06_23 <- mutate(facts_act_grouped_06_23, Benefits = mu*lambda, 
                                   Benefit_Cost = Benefits/TOT_COST)
-
-# facts_act_grouped_06_23 <- filter(facts_act_grouped_06_23, ACCOMPLISHED_ACRES > 0)
 
 ## Identify observations with high cost/acre
 
@@ -2717,261 +2387,4 @@ Robustness[5, ] <- c(
 write_csv(Robustness, here("data", "temp", "BCR_Robustness.csv"))
 
 
-
-
-
-
-# BC_Large_noimp <- sum(filter(facts_act_grouped_06_23_filt, TREAT_SIZE > q2)$Benefits)/sum(filter(facts_act_grouped_06_23_filt, TREAT_SIZE > q2)$TOT_COST)
-# BC_Medium_noimp <- sum(filter(facts_act_grouped_06_23_filt, TREAT_SIZE > q1 & TREAT_SIZE <= q2)$Benefits)/sum(filter(facts_act_grouped_06_23_filt, TREAT_SIZE > q1 & TREAT_SIZE <= q2)$TOT_COST)
-# BC_Small_noimp <- sum(filter(facts_act_grouped_06_23_filt, TREAT_SIZE > q_05 & TREAT_SIZE <= q1)$Benefits)/sum(filter(facts_act_grouped_06_23_filt, TREAT_SIZE > q_05 & TREAT_SIZE <= q1)$TOT_COST)
-# 
-# c(BC_Large_noimp, BC_Medium_noimp, BC_Small_noimp)
-# 
-# Robustness[3, ] <- c(
-#   round(BCR_Overall_noimp, digits = 2),
-#   round(BC_Small_noimp, digits = 2),
-#   round(BC_Medium_noimp, digits = 2), 
-#   round(BC_Large_noimp, digits = 2), 
-#   paste0("$", prettyNum(round(  Avoided_Damages_Noimp, digits = 2), scientific = F, big.mark = ",")),
-#   N_Treats_noimp
-# )
-# 
-# write_csv(Robustness, here("data", "temp", "BCR_Robustness.csv"))
-
-
-
-
-
-# #### Distribution for mu for each treatment size
-# 
-# Treatment_Benefits <- treated_data_filt %>%
-#   group_by(TREAT_ID) %>%
-#   summarise(House_Savings = sum(Structure_Value_Lost_No_Treat - Structure_Value_Lost_With_Treat, na.rm = T),
-#             Carbon_Savings = (sum(CO2_No_Treat - CO2_With_Treat))*185,
-#             Death_Savings = sum(DeathCost_No_Treat - DeathCost_With_Treat, na.rm = T),
-#             Earning_Savings = sum(EarningsLoss_No_Treat - EarningsLoss_With_Treat, na.rm = T),
-#             Size_Bin = dplyr::first(Size_Bin),
-#             TREAT_SIZE = dplyr::first(TREAT_SIZE))
-# 
-# Treatment_Benefits <- mutate(Treatment_Benefits, Benefits = House_Savings + Carbon_Savings + Death_Savings + Earning_Savings)
-# 
-# Treatment_Benefits <- mutate(Treatment_Benefits, Benefit_Per_Acre = Benefits/TREAT_SIZE)
-# 
-# Treatment_Benefits$Size_Bin <- factor(Treatment_Benefits$Size_Bin, levels = c("Small", "Medium", "Large"))
-# 
-# Treatment_Benefits <- mutate(Treatment_Benefits, Benefits_rep = ifelse(Benefits < 0, 0, Benefits),
-#                              Log_Benefit = sign(Benefit_Per_Acre) * log(abs(Benefit_Per_Acre) + 1))
-# 
-# Treatment_Benefits_plot <- ggplot(Treatment_Benefits, aes(x = Benefit_Per_Acre, fill = Size_Bin)) +
-#   geom_density(alpha = 0.6) +  # Semi-transparent density curves
-#   scale_fill_manual(
-#     values = nature_palette, 
-#     labels = c("Small (75-600)", "Medium (600-2400)", "Large (> 2400)")
-#   ) +
-#   labs(
-#     x = "Log Treatment Benefit Per Acre Treated ($)", 
-#     y = "Density",
-#     fill = NULL  # Remove default legend title
-#   ) +
-#   theme_minimal(base_size = 16) +
-#   theme(
-#     panel.grid = element_blank(),  # Remove grid lines
-#     axis.title = element_text(size = 18, face = "bold"),  
-#     axis.text = element_text(size = 15),  
-#     legend.position = "bottom",
-#     legend.text = element_text(size = 15),
-#     legend.key = element_rect(fill = NA),
-#     legend.spacing.x = unit(0.3, 'cm'),
-#     plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
-#     panel.border = element_rect(color = "black", fill = NA, size = 1)
-#   )
-# 
-# Treatment_Benefits_plot
-# 
-# 
-# 
-# 
-# 
-# #### Distribution of B-C Ratio based on our Treatment Size Bins: "Small" (75-600), "Medium" (600-2400), "Large" (>2400)
-# 
-# facts_act_grouped_17_23_filt <- mutate(facts_act_grouped_17_23_filt, BC = Benefits/TOT_COST)
-# 
-# facts_act_grouped_17_23_filt_1 <- filter(facts_act_grouped_17_23_filt, TREAT_SIZE > q_05)
-# 
-# facts_act_grouped_17_23_filt_1$Size_Bin <- factor(facts_act_grouped_17_23_filt_1$Size_Bin, levels = c("Small", "Medium", "Large"))
-# 
-# Median_BCR <- median(facts_act_grouped_17_23_filt_1$Benefit_Cost)
-# Total_BCR <- sum(facts_act_grouped_17_23_filt_1$Benefits)/sum(facts_act_grouped_17_23_filt_1$TOT_COST)
-# 
-# 
-# # Calculate median and total BCR
-# Median_BCR <- median(facts_act_grouped_17_23_filt_1$Benefit_Cost, na.rm = TRUE)
-# Total_BCR <- sum(facts_act_grouped_17_23_filt_1$Benefits, na.rm = TRUE) / sum(facts_act_grouped_17_23_filt_1$TOT_COST, na.rm = TRUE)
-# 
-# # Subset data to avoid dropping Size_Bin
-# filtered_data <- facts_act_grouped_17_23_filt_1 %>% filter(BC < 25)
-# 
-# vline_data <- data.frame(
-#   xintercept = c(1, Median_BCR, Total_BCR),
-#   label = c("Cost-Effective", "Median BCR", "Total BCR"),
-#   color = c("black", "#9C2A2F", "blue")  # Black, Gold, Deep Blue
-# )
-# 
-# # Calculate the maximum density value for the BC variable
-# max_density <- max(density(filter(facts_act_grouped_17_23_filt_1, BC < 25)$BC)$y)
-# 
-# # Create the plot
-# Ex_Ante_BCR_plot <- ggplot(filter(facts_act_grouped_17_23_filt_1, BC < 25), aes(x = BC, fill = Size_Bin)) +
-#   geom_density(alpha = 0.6) +  # Semi-transparent density curves
-#   
-#   # Vertical lines with explicit data, avoiding inheritance issues
-#   geom_vline(data = vline_data, aes(xintercept = xintercept, color = color), 
-#              linetype = "dashed", size = 1, inherit.aes = FALSE) +  
-#   
-#   # Labels for vertical lines, adjusting position closer to the x-axis
-#   geom_text(data = vline_data, aes(x = xintercept, y = max_density * 0.10, label = label, color = color), 
-#             angle = 90, vjust = -0.5, hjust = 0, size = 5, fontface = "bold", inherit.aes = FALSE) +
-#   
-#   scale_fill_manual(
-#     values = nature_palette, 
-#     labels = c("Small (75-600)", "Medium (600-2400)", "Large (> 2400)")
-#   ) +
-#   scale_color_identity() +  # Ensures colors from vline_data are used correctly
-#   labs(
-#     x = "Ex-Ante B-C Ratio", 
-#     y = "Density",
-#     fill = NULL  # Remove default legend title
-#   ) +
-#   theme_minimal(base_size = 16) +
-#   theme(
-#     panel.grid = element_blank(),  # Remove grid lines
-#     axis.title = element_text(size = 18, face = "bold"),  
-#     axis.text = element_text(size = 15),  
-#     legend.position = "bottom",
-#     legend.text = element_text(size = 15),
-#     legend.key = element_rect(fill = NA),
-#     legend.spacing.x = unit(0.3, 'cm'),
-#     plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
-#     panel.border = element_rect(color = "black", fill = NA, size = 1)
-#   ) +
-#   coord_cartesian(clip = "off")  # Prevents cropping of axis lines
-# 
-# Ex_Ante_BCR_plot
-# 
-# 
-# #### Create small table of Ex-Ante B-C's
-# 
-# BC_df <- data.frame(
-#   BC_1 = BC_1,
-#   BC_2 = BC_2,
-#   BC_3 = BC_3,
-#   BC_Ratio_Ex_Ante_17_23 = BC_Ratio_Ex_Ante_17_23,
-#   Median_BC = Median_BC
-# )
-# 
-# colnames(BC_df) <- c("Small (75-600)","Medium (600-2400)", "Large (>2400)", "Total", "Median")
-# 
-# rownames(BC_df) <- "Ex-Ante Benefit Cost Ratios"
-# 
-# BC_df[1,] <- round(BC_df[1,], digits = 2)
-# 
-# table <- tableGrob(BC_df)
-
-# ##### Combine all three plots into one
-# 
-# # Theme for table (same as before)
-# clean_theme <- ttheme_minimal(
-#   core = list(
-#     fg_params = list(fontsize = 12),
-#     bg_params = list(fill = NA, col = "grey80")
-#   ),
-#   colhead = list(
-#     fg_params = list(fontsize = 12, fontface = "bold"),
-#     bg_params = list(fill = NA, col = "grey80")
-#   ),
-#   padding = unit(c(6, 6), "mm")
-# )
-# 
-# # Table object
-# table <- tableGrob(BC_df, rows = NULL, theme = clean_theme)
-# 
-# # Panel tag and title in a horizontal layout
-# panel_label <- textGrob("d)", x = 0, hjust = 0, gp = gpar(fontsize = 12, fontface = "bold"))
-# table_title <- textGrob("Summary of Ex-Ante Benefit Cost Ratios", x = 0, hjust = 0, gp = gpar(fontsize = 13, fontface = "bold"))
-# 
-# # Combine d) and title in a row
-# title_row <- arrangeGrob(
-#   panel_label, table_title, ncol = 2, widths = unit.c(unit(0.05, "npc"), unit(0.95, "npc"))
-# )
-# 
-# # Combine title row and table in a vertical layout
-# table_with_title <- arrangeGrob(
-#   title_row,
-#   table,
-#   ncol = 1,
-#   heights = unit.c(unit(0.2, "npc"), unit(1, "npc"))
-# )
-
-# Final layout, balanced heights
-# final_layout <- (
-#   (lambda_plot | Treatment_Benefits_plot) / 
-#     Ex_Ante_BCR_plot) +  
-#   plot_annotation(
-#     theme = theme(
-#       plot.tag = element_text(face = "bold", size = 12),
-#       plot.title = element_text(size = 16, face = "bold")
-#     )
-#   )
-# 
-# final_layout
-# 
-# ggsave(here("output", "figures", "Figure5.pdf"), final_layout, width = 14, height = 10, units = "in")
-
-
-
-
-
-
-
-# pdf(here("output", "figures", "lambda_size_plot.pdf"))
-# 
-# print(lambda_plot)
-# 
-# dev.off()
-# 
-# pdf(here("output", "figures", "Treatment_Benefits_plot.pdf"))
-# 
-# print(Treatment_Benefits_plot)
-# 
-# dev.off()
-# 
-# pdf(here("output", "figures", "Ex_Ante_BCR_plot.pdf"))
-# 
-# print(Ex_Ante_BCR_plot)
-# 
-# dev.off()
-
-
-
-
-#### Descriptive Stats of fires
-
-HealthStats <- Grids_df_filt_1 %>%
-  group_by(YEAR) %>%
-  summarise(
-    DeathCosts     = sum(DeathCost) / 1e12,
-    EarningsLosses = sum(EarningsLoss) / 1e12,
-    PM25_YEARLY = sum(FIRE_PM25)
-  ) %>%
-  mutate(
-    HealthLosses = DeathCosts + EarningsLosses
-  )
-
-sum(filter(HealthStats, YEAR <= 2020)$HealthLosses)
-sum(filter(HealthStats, YEAR > 2020)$HealthLosses)
-
-sum(filter(HealthStats, YEAR <= 2020)$PM25_YEARLY)
-sum(filter(HealthStats, YEAR > 2020)$PM25_YEARLY)
-
-
-
+toc()

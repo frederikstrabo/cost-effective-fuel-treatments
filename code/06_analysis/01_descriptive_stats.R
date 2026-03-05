@@ -2,21 +2,22 @@
 
 ################# Purpose: Create descriptive statistics Figure 1, impute PM2.5 smoke exposure, and calculate USFS budget imputed footprint cost/acre.
 
-################# Outputs: "SpatialDiD_Grids_L24_K05.csv" - saved in "data/intermediate"
-#################           Figure S10 = "Emissions_Exposure_Plot.pdf" saved in "output/figures"
-#################           USFS budget imputed footprint cost per acre 
-#################           Figure 1 = "Figure1.pdf"
+################# Outputs: "SpatialDiD_Grids_L24_K05.csv" - saved in "data/intermediate".
+#################           Figure S10 saved as "FigureS10.pdf" saved in "output/figures".
+#################           USFS budget imputed footprint cost per acre. 
+#################           Figure 1 saved as "Figure1.pdf" saved in "output/figures".
+
+################# Estimated run time: ~15 min.
 
 rm(list=ls())
 
-if (!require("pacman")) install.packages("pacman")
-pacman::p_load(dplyr,sf, tmap, magrittr, rnaturalearth, rnaturalearthdata, ggplot2, maps, lwgeom, rgeos, raster, stars, haven, stargazer, quantmod, lubridate, tidyr, ggpubr, 
-               rgdal, exactextractr, tictoc, terra, gtools, here, fixest, modelsummary, readr, rdrobust, prism, parallel,tmaptools, 
+# if (!require("pacman")) install.packages("pacman")
+pacman::p_load(dplyr,sf, tmap, magrittr, rnaturalearth, rnaturalearthdata, ggplot2, maps, lwgeom, raster, stars, haven, stargazer, quantmod, lubridate, tidyr, ggpubr, 
+               exactextractr, tictoc, terra, gtools, here, fixest, modelsummary, readr, rdrobust, prism, parallel,tmaptools, 
                OpenStreetMap, maptiles, gifski, geosphere, did, cowplot, readxl, scales, gridExtra, patchwork, broom, forcats, magick, stringr)
 
 # Set Path
 here::i_am("code/06_analysis/01_descriptive_stats.R")
-
 
 # Load Functions 
 
@@ -103,11 +104,13 @@ mean_cost <- mean(facts_west$COST_PER_UOM, na.rm = TRUE)
 sd_cost <- sd(facts_west$COST_PER_UOM, na.rm = TRUE)
 threshold <- mean_cost + 10*sd_cost
 
-# facts_west_filt <- filter(facts_west, COST_PER_UOM <= threshold)
+# Remove outliers with cost/acre estimates exceeding 10 standard deviations
 facts_west_filt <- mutate(facts_west, ADJUSTED_TOTAL_COST = ifelse(COST_PER_UOM <= threshold, 
                                                                    ADJUSTED_TOTAL_COST, 
                                                                    0))
 ## Load in USA
+
+options(rnaturalearthhires = FALSE)
 
 usa <- rnaturalearth::ne_states(country = "United States of America", returnclass = "sf") %>%
   st_transform(crs = 5070)
@@ -139,7 +142,7 @@ mtbs_point <- st_read(here("data", "raw", "MTBS", "mtbs_fod_pts_data", "mtbs_FOD
 WFEIS <- read_csv(here("data", "raw", "WFEIS", "WFEIS_data.csv"))
 
 
-########  Step 1. Impute smoke exposure for fires without PM2.5 exposure estimates
+################  Impute smoke exposure for fires without PM2.5 exposure estimates & create Figure S10    ################
 
 #### What is the correlation between total PM2.5 Emissions from a fire and total population-day PM2.5 exposure?
 
@@ -177,7 +180,7 @@ final_layout <- emission_exposure_plot +
   plot_layout(guides = "collect") +  # <- collect shared legend
   theme(legend.position = "bottom")  # <- move legend to bottom
 
-ggsave(here("output", "figures", "Emissions_Exposure_Plot.pdf"), final_layout, 
+ggsave(here("output", "figures", "FigureS10.pdf"), final_layout, 
        width  = 7.24,          # Science 3-column width
        height = 4.5,    # ~4.5 in
        units  = "in",
@@ -217,8 +220,7 @@ pred_all <- pred_all %>%
 Grids_df <- Grids_df %>%
   left_join(pred_all, by = "FIRE_ID") %>%
   mutate(
-    exposure_predicted = is.na(total_pop_smokePM) & !is.na(total_pop_smokePM_pred),
-    
+    exposure_predicted = is.na(total_pop_smokePM) & !is.na(total_pop_smokePM_pred), # indicator if its exposure is predicted or not
     # fill only if missing
     total_pop_smokePM     = coalesce(total_pop_smokePM,     total_pop_smokePM_pred),
     Deaths                = coalesce(Deaths,                Deaths_pred),
@@ -230,14 +232,15 @@ Grids_df <- Grids_df %>%
   )
 
 
-Grids_df <- arrange(Grids_df, FIRE_ID, direction, distance_bin)
+## Save updated baseline grids to "data/intermediate" folder
 
+Grids_df <- arrange(Grids_df, FIRE_ID, direction, distance_bin)
 write_csv(Grids_df, here("data", "intermediate", "SpatialDiD_Grids_L24_K05.csv"))
 
 
 
 
-######## Step 2. Create Figure 1 - Map of MTBS fires in sample and time series plots of: 
+########    Create Figure 1 - Map of MTBS fires in sample and time series plots of: 
 ########                            i) acres burned, ii) suppression costs, iii) acres of fuel treatment, 
 ########                              and iv) fuel treatment costs in Western U.S. by Western USFS or full Western.
 
@@ -510,7 +513,7 @@ TotalCost_Adj <- TotalCost / CPI_2020 # adjust to 2023 dollars
 TotalCost_Adj/Footprint_Acres_2011_2020 # will use in Cost-Benefit Analysis in script "SurvivalPlots.R" - $400.9842 per footprint acre
 
 
-#### Back to code  ####
+#### Back to creating Figure 1  ####
 
 treatment_long <- yearly_acres_treated_USFS %>%
   rename(YEAR_MTBS = YEAR) %>%
@@ -580,17 +583,6 @@ mtbs_west <- mutate(mtbs_west, FT_FIRE_INT = ifelse(FIRE_ID %in% MTBS_IDs, "Yes"
   filter(YEAR_MTBS %in% seq(2017,2023, 1)) %>%
   st_transform(crs = 3857)
 
-sum(mtbs_west$FT_FIRE_INT == "No")
-
-as.data.frame(mtbs_west) %>%
-  group_by(FT_FIRE_INT) %>%
-  summarise(Total_Acres_Burned = sum(ACRES), 
-            Total_Sup_Cost = sum(Total_Sup_Cost, na.rm = T))
-
-burro_id <- filter(mtbs, FIRE_NAME == "BURRO" & YEAR_MTBS == 2017)$FIRE_ID
-
-mtbs_fire_ig <- filter(mtbs_point, FIRE_ID == burro_id)  %>% st_transform(crs = 3857)
-
 usa <- rnaturalearth::ne_states(country = "United States of America", returnclass = "sf") %>%
   st_transform(crs = 3857)
 
@@ -606,11 +598,10 @@ mtbs_west_1 <- sf::st_as_sf(mtbs_west) %>%
                          levels = c("No", "Yes"))
   )
 
+#### Create map for Figure 1 A)
+
 # High-quality map
 tmap_mode("plot")  # Ensures static map for journal-quality output
-
-# Expand the bounding box by adding a buffer (e.g., 0.05 units)
-burro_buffer <- st_buffer(mtbs_fire_ig, dist = 50000) %>% st_transform(crs = 3857)
 
 fire_FT_map <- tm_shape(usa_western) +
   tm_polygons(col = "grey90", border.col = "black", lwd = 1) +
@@ -641,6 +632,8 @@ fire_FT_map <- tm_shape(usa_western) +
     legend.text.size  = 0.7
   )
 
+## save map & resize for future layout
+
 tmap_save(fire_FT_map, here("output", "maps", "SampleFires.png"),
           width = 12, height = 8, dpi = 300, outer.margins = 0)
 
@@ -656,6 +649,8 @@ trim_and_save(img_path)
 
 map <- ggdraw() + draw_image(here("output", "maps", "SampleFires.png"))
 
+
+#### Focus only on acres burned, suppression costs, acres of fuel treatment, and fuel treatment costs
 
 combined_data_filt <- filter(combined_data, Metric != "PM₂.₅ Emissions" & Metric != "CO₂ Emissions" & 
                                Metric != "Structures Destroyed")
@@ -682,6 +677,8 @@ combined_data_filt$Region <- factor(combined_data_filt$Region,
                                     levels = c("Western U.S.", "USFS Western U.S."))
 
 combined_data_filt$Total <- combined_data_filt$Total/1000000
+
+#### Create plots of Figure 1 B)-E)
 
 # Create individual plots with lines only and shared theme
 plot_list <- lapply(metric_list, function(metric_name) {
@@ -741,6 +738,8 @@ combined_plot <- wrap_plots(plot_list, ncol = 2) +
   )
 
 
+#### Create full layout of Figure 1
+
 final_plot <- (map | combined_plot) + 
   plot_layout(widths = c(1.2, 1)) +
   plot_annotation(tag_levels = "A") &
@@ -756,7 +755,7 @@ final_plot <- (map | combined_plot) +
         legend.text  = element_text(family = "Helvetica", size = 7)
   )
 
-# ggsave(here("output", "figures", "Figure1.pdf"), final_plot, width = 14, height = 10, units = "in")
+## Save Figure 1
 
 ggsave(here("output", "figures", "Figure1.pdf"), final_plot, 
        width  = 7.24,          # Science 3-column width

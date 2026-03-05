@@ -1,19 +1,22 @@
 ##########################################    02_parks_facts_list.R   ##########################################
 
-################# Purpose: Create a list of all the MTBS fires in our sample 
+################# Purpose: Creates a list of all the daily of burning fire perimeter rasters used in our sample. 
+#################             This list is used as input when we build our plot panels in "01_build_plot_panel.R".
 
 ################# Output: "FACTS_Parks_Fire_List.csv" saved in "data/intermediate"
 
+################# Estimated run time: ~1 hr 40 minutes
+
 rm(list=ls())
 
-if (!require("pacman")) install.packages("pacman")
-pacman::p_load(dplyr,sf, tmap, magrittr, rnaturalearth, rnaturalearthdata, ggplot2, maps, lwgeom, rgeos, raster, stars, haven, stargazer, quantmod, lubridate, tidyr, ggpubr, 
-               rgdal, exactextractr, tictoc, terra, gtools, here, fixest, modelsummary, readr, rdrobust, prism, parallel,tmaptools, 
+# if (!require("pacman")) install.packages("pacman")
+pacman::p_load(dplyr,sf, tmap, magrittr, rnaturalearth, rnaturalearthdata, ggplot2, maps, lwgeom, raster, stars, haven, stargazer, quantmod, lubridate, tidyr, ggpubr, 
+               exactextractr, tictoc, terra, gtools, here, fixest, modelsummary, readr, rdrobust, prism, parallel,tmaptools, 
                OpenStreetMap, maptiles, gifski)
 
 
 # Set Path
-here::i_am("code/MTBS_FACTS_Fires.R")
+here::i_am("code/02_fire_progression/02_parks_facts_list.R")
 
 # Set CRS
 CRS = 5070
@@ -28,7 +31,7 @@ st_erase = function(x, y) st_difference(x, st_make_valid(st_union(st_combine(y))
 #### FACTS - Forest Service Fuel Treatments
 
 facts <- st_read(here("data", "raw", "FACTS", "S_USA.Activity_HazFuelTrt_PL.shp"))
-facts <- tidy_facts(facts, inf_yr = 2020, crs = CRS)
+facts <- tidy_facts(facts, inf_yr = 2023, crs = CRS)
 facts$ROW_ID <- 1:nrow(facts)
 
 # distinguish completed & incomplete projects
@@ -111,7 +114,6 @@ for (i in 1:length(raster_list)){
   fires_int_df <- rbind(fires_int_df, df_temp)
   
 }
-
 
 ## Save list of Parks fires that intersect as .csv
 

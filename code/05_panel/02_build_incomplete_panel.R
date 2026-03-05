@@ -1,17 +1,23 @@
-##########################################    03_build_incomplete_panel  ##########################################
+##########################################    02_build_incomplete_panel  ##########################################
 
-################# Purpose: Creates sample of grids to be used for Spatial DiD Analysis
+################# Purpose: Using the similar code from "05_panel/01_build_plot_panel.R", create a panel of plots using only incomplete fuel 
+#################           treatment projects for a placebo test. Code is not exactly the same as "05_panel/01_build_plot_panel.R" to avoid unnecessary computation).
+
+################# Output: "SpatialDiD_Grids_24L_K05_Incomp.csv" saved in "data/intermediate" 
+
+################# Estimated run time: ~ 4 hours
 
 rm(list=ls())
 
-if (!require("pacman")) install.packages("pacman")
-pacman::p_load(dplyr,sf, tmap, magrittr, rnaturalearth, rnaturalearthdata, ggplot2, maps, lwgeom, rgeos, raster, stars, haven, stargazer, quantmod, lubridate, tidyr, ggpubr, 
-               rgdal, exactextractr, tictoc, terra, gtools, here, fixest, modelsummary, readr, rdrobust, prism, parallel,tmaptools, 
+# if (!require("pacman")) install.packages("pacman")
+pacman::p_load(dplyr,sf, tmap, magrittr, rnaturalearth, rnaturalearthdata, ggplot2, maps, lwgeom, raster, stars, haven, stargazer, quantmod, lubridate, tidyr, ggpubr, 
+               exactextractr, tictoc, terra, gtools, here, fixest, modelsummary, readr, rdrobust, prism, parallel,tmaptools, 
                OpenStreetMap, maptiles, gifski, purrr, nngeo, stringr, geosphere)
 
 
 # Set Path
-here::i_am("code/07_robustness/03_build_incomplete_panel.R")
+here::i_am("code/05_panel/02_build_incomplete_panel.R")
+
 
 # Load Functions 
 
@@ -24,7 +30,7 @@ st_erase = function(x, y) st_difference(x, st_make_valid(st_union(st_combine(y))
 #### FACTS - Forest Service Fuel Treatments
 
 facts <- st_read(here("data", "raw", "FACTS", "S_USA.Activity_HazFuelTrt_PL.shp"))
-facts <- tidy_facts(facts, inf_yr = 2020, crs = 5070)
+facts <- tidy_facts(facts, inf_yr = 2023, crs = 5070)
 facts$ROW_ID <- 1:nrow(facts)
 
 # distinguish completed & incomplete projects
@@ -46,6 +52,16 @@ for (file in tif_files) {
   raster_list[[file]] <- raster(file)
   raster_stars_list[[file]] <- read_stars(file)
 }
+
+fire_lookup <- tibble(
+  file = tif_files,
+  filename = basename(tif_files),
+  ID = filename |>
+    str_remove("\\.tif$") |>
+    str_remove("\\.dob$") |>
+    str_remove("_1_dob$") |>
+    str_remove("_dob$")
+)
 
 # Load in USFS NF
 
@@ -99,21 +115,42 @@ for (i in 1:nrow(fires_int_df)){
   
   n = i
   
+  ###### Step 1. get relevant fire characteristics, ignition point, load in relevant fire specific data, and intersect with treatments
+  
+  # Grab fire and raster ID
   fire_id <- as.character(fires_int_df[i, 1])
   ras_id <- as.numeric(fires_int_df[i, 2])
   
+  # Get DOB perimeter, MTBS perimeter, fire name, year and size
   fire <- raster_list[[ras_id]]
   mtbs_fire <- filter(mtbs, FIRE_ID == fire_id)
   fire_name <- mtbs_fire$FIRE_NAME
   fire_year <- mtbs_fire$YEAR_MTBS
   fire_size <- mtbs_fire$ACRES
   
+  #### Make sure the day of burning raster & MTBS fire ID match up 
+  
+  ras_fire_id <- fire_lookup[ras_id , "ID"]
+  
+  if (ras_fire_id != fire_id) {
+    stop(
+      paste0(
+        "ERROR: MTBS fire ID mismatch.\n",
+        "  Expected MTBS ID: ", mtbs_id, "\n",
+        "  Raster layer name: ", raster_id, "\n",
+        "Please check the file ordering or naming of the day-of-burning rasters in data/raw/PARKS."
+      ),
+      call. = FALSE
+    )
+  }
+  
+  # reported ignition point
   mtbs_fire_ig <- filter(mtbs_point, FIRE_ID == fire_id)
   
-  MTT <- raster(here("data", "intermediate", "FB", "TestMTT", "MTT_Inputs", 
+  MTT <- raster(here("data", "raw", "FB", "TestMTT", "MTT_Inputs", 
                      "MTT_Output", paste0("fire", n, "_ArrivalTime.asc")))
   
-  MTT_INT <- raster(here("data", "intermediate", "FB", "TestMTT", "MTT_Inputs", 
+  MTT_INT <- raster(here("data", "raw", "FB", "TestMTT", "MTT_Inputs", 
                          "MTT_Output", paste0("fire", n, "_INTENSITY.asc")))
   
   #### Get ignition point from centroid of first day
@@ -133,12 +170,14 @@ for (i in 1:nrow(fires_int_df)){
   # Step 5: Compute the centroid
   mtbs_fire_ig <- st_centroid(ignition_sf) %>% st_transform(crs = 5070)
   
+  # load in MTBS burn severity raster
   mtbsBS_year <- raster(here("data", "raw", "MTBS", "MTBS_BSmosaics", fire_year, paste0("mtbs_CONUS_", fire_year, ".tif")))
   
-  # intersect MTBS w/FACTS
+  # intersect MTBS w/FACTS - both complete and incomplete treatments
   mtbs_facts_comp_int <- st_intersection(mtbs_fire, facts_comp)
   mtbs_facts_incomp_int <- st_intersection(mtbs_fire, facts_incomp)
   
+  # filter to only treatments that were complete before the fire
   mtbs_facts_comp_int_filt <- as.data.frame(subset(mtbs_facts_comp_int, YEAR < YEAR_MTBS | YEAR == YEAR_MTBS & MONTH < MONTH_MTBS)) %>%
     filter(YEAR > 2004) %>%
     filter(YEAR_MTBS - YEAR <= 10)
@@ -148,17 +187,21 @@ for (i in 1:nrow(fires_int_df)){
   
   mtbs_facts_int_filt <- rbind(mtbs_facts_comp_int_filt, mtbs_facts_incomp_int_filt)
   
+  # grab treatment IDs
   treatment_IDs <- unique(mtbs_facts_int_filt$ROW_ID)
   
+  # the bounding perimeter of the fire
   fire_extent_poly <- st_as_sfc(st_bbox(fire))
   
-  # Find intersecting fuel treatments
+  # Find intersecting fuel treatments - subset to only INCOMPLETE treatments
   intersecting_facts <- filter(facts, ROW_ID %in% treatment_IDs)
-  intersecting_facts <- filter(intersecting_facts, COMPLETE == 0) # Only look at incomplete projects for now
+  intersecting_facts <- filter(intersecting_facts, COMPLETE == 0) # Only look at incomplete projects
   
   if (nrow(intersecting_facts) == 0){
     next
   }
+  
+  ###### Step 2. Construct plots by their unique direction and distance from the ignition point
   
   # Get the boundary of the fire perimeter
   fire_boundary <- st_boundary(mtbs_fire)
@@ -169,17 +212,16 @@ for (i in 1:nrow(fires_int_df)){
   # Calculate the distances from the ignition point to each boundary point
   distances <- st_distance(mtbs_fire_ig, boundary_points)
   
-  # Find the maximum distance
+  # Find the maximum distance - this sets the maximum distance bin used to construct our plots
   max_distance <- max(as.numeric(distances))  # Extract numeric value from the distance object
   
-  # add 3 kilometers to max distance
-  
+  # add 3 kilometers to max distance - allows for simulating fire growth in the absence of treatment
   max_distance <- max_distance + 3000
   
-  # Define the number of rays
+  # Define the number of directions
   num_rays <- 24
   
-  # Create a sequence of angles (in radians)
+  # Create a sequence of angles (in radians) that defines the directions of the fire
   angles <- seq(0, 2 * pi, length.out = num_rays + 1)[-1]
   
   # Function to calculate the end point of a ray given an origin, angle, and length
@@ -277,7 +319,7 @@ for (i in 1:nrow(fires_int_df)){
   direction_distance_sf <- st_make_valid(direction_distance_sf)
   
   
-  #### Get the dominant angle of spread for each direction
+  #### Get the dominant angle of spread for each direction - used when creating control variable of wind difference
   
   # Ensure fire origin is a POINT and extract its coordinates
   fire_origin_coords <- st_coordinates(st_transform(mtbs_fire_ig, crs = 4326))  # (X = longitude, Y = latitude)
@@ -303,15 +345,15 @@ for (i in 1:nrow(fires_int_df)){
   direction_distance_sf <- st_transform(direction_distance_sf, crs = 5070)
   
   
-  # Now you have rays divided by direction and distance bins
-  # You can save this as a shapefile or use it in further analysis
+  ###### Step 3. With our now defined plots extract relevant controls, wildfire outcomes and treatment status
   
   Grids <- direction_distance_sf
   Grids$Grid_ID <- 1:nrow(Grids)
   Grids_Cent <- st_centroid(Grids)
   
-  #### Intersect with National Forests
+  ###### Create National Forest & Wilderness indicators
   
+  ## Intersect with National Forests
   Grids_NF_int <- st_intersection(Grids_Cent, USFS_NF)
   
   grids_usfs_nf_int <- as.data.frame(Grids_NF_int) %>%
@@ -322,8 +364,7 @@ for (i in 1:nrow(fires_int_df)){
   Grids <- merge(Grids, grids_usfs_nf_int, by = "Grid_ID", all.x = T)
   Grids[is.na(Grids$USFS_NF), "USFS_NF"] <- 0
   
-  #### Intersect with Wilderness Areas
-  
+  ## Intersect with Wilderness Areas
   Grids_NF_int <- st_intersection(Grids_Cent, WAs)
   
   grids_usfs_wa_int <- as.data.frame(Grids_NF_int) %>%
@@ -337,8 +378,9 @@ for (i in 1:nrow(fires_int_df)){
   # Calculate Acres in Grid
   Grids$Grid_Acres <- as.numeric(st_area(Grids)/4046.86)
   
-  # Group all FACTS treatments by Activity Unit
+  ###### Extract relevant treatment information for each plot 
   
+  # Group all FACTS treatments by Activity Unit
   intersecting_facts_grouped <- intersecting_facts %>%
     group_by(ACTIVITY_UNIT_CN) %>%
     summarise(geometry = st_union(geometry), 
@@ -352,11 +394,19 @@ for (i in 1:nrow(fires_int_df)){
   
   act_treat_complete <- dplyr::select(as.data.frame(intersecting_facts_grouped), ACTIVITY_UNIT_CN, COMPLETE) %>% dplyr::rename(TREAT_ID = ACTIVITY_UNIT_CN)
   
-  # Calculate acres treated for each treatment
+  # Calculate the total acres treated for each treatment project
   intersecting_facts_grouped$Acres_Treated_Treatment <- as.numeric(st_area(intersecting_facts_grouped)/4046.86)
   
+  #### Intersect plots with treatments
+  
   Grids_Treated_Int <- st_intersection(Grids, intersecting_facts_grouped)
+  
+  # calculate acres of treatment in a given plot
   Grids_Treated_Int$Acres_Treated_Int <- as.numeric(st_area(Grids_Treated_Int)/4046.86)
+  
+  
+  #### aggregate treatments within a plot to calculate treatment status ("Treated"), treatment type category ("TREAT_CAT"), 
+  ####                                        treatment project size ("TREAT_SIZE"), treatment time completed ("YEAR_COMPLETE")
   
   Grids_Treated <- Grids_Treated_Int %>%
     as.data.frame() %>%
@@ -377,9 +427,11 @@ for (i in 1:nrow(fires_int_df)){
   
   Grids <- merge(Grids, Grids_Treated, by = "Grid_ID", all.x = T)
   
-  
+  # For plots with no treatment set it equal to 0
   Grids[is.na(Grids$Treated), "Treated"] <- 0
   Grids[is.na(Grids$Pct_Treated), "Pct_Treated"] <- 0
+  
+  #### Create lagged treatment variable - i.e. allow for impact of a the potential spread from a treated plot to a untreated plot
   
   Grids_lag_treated <- as.data.frame(Grids) %>%
     group_by(direction) %>%   # Group by direction (fire identifier)
@@ -392,12 +444,9 @@ for (i in 1:nrow(fires_int_df)){
   Grids <- merge(Grids, Grids_lag_treated, 
                  by = c("direction", "distance_bin_end"), all.x = T)
   
+  Grids <- mutate(Grids, distance_bin_end = distance_bin_end/500) # normalize the distance bin to kilometers
   
-  
-  
-  Grids <- mutate(Grids, distance_bin_end = distance_bin_end/500)
-  
-  ## Create indicators for whether a direction is a treated direction or not. Get distance bin of closest treatment in a direction - L_TAU
+  #### Create indicators for whether a direction is a treated direction or not. Get distance bin of closest treatment in a direction - L_TAU
   
   Direction_L_Taus <- as.data.frame(Grids) %>%
     group_by(direction) %>%
@@ -409,6 +458,8 @@ for (i in 1:nrow(fires_int_df)){
   Grids <- mutate(Grids, AFT_TREAT = ifelse(distance_bin_end > L_TAU & Treated == 0, 1, 0))
   
   Grids[is.na(Grids$Treated_Dir), "Treated_Dir"] <- 0
+  
+  ## Indicators of whether a plot is pre or post treatment
   
   Grids <- mutate(Grids, PRE = ifelse(distance_bin_end < L_TAU, 1, 0),
                   POST = ifelse(distance_bin_end >= L_TAU, 1, 0))
@@ -431,6 +482,8 @@ for (i in 1:nrow(fires_int_df)){
   
   Grids <- merge(Grids, Treat_Directions, by = "direction", all.x = T)
   
+  ############   Calculate wildfire outcomes
+  
   #### Get Day of Burn & Burn Severity
   
   Grids_Cent <- st_centroid(Grids)
@@ -438,6 +491,8 @@ for (i in 1:nrow(fires_int_df)){
   Grids_Cent_reproj <- st_transform(Grids_Cent, crs = st_crs(fire))
   
   Grids$DAY_BURN <- raster::extract(fire, Grids_Cent_reproj) # Extract the day a grid cell burns
+  
+  #### Intersect wildfire perimeter with plots to get percent burned in a plot
   
   Grids_Fire_Int <- st_intersection(Grids, mtbs_fire)
   Grids_Fire_Int$Fire_Grid_Acres <- as.numeric(st_area(Grids_Fire_Int)/4046.86)
@@ -453,7 +508,8 @@ for (i in 1:nrow(fires_int_df)){
   Grids <- merge(Grids, Grids_Fire_Ints, by = "Grid_ID", all.x = T)
   Grids[is.na(Grids$PCT_BURN), "PCT_BURN"] <- 0
   
-  # Code a grid as burned if the centroid intersects with the fire
+  ####   Code a grid as burned if the centroid intersects with the fire
+
   Grids_Cent_Fire_Int <- st_intersection(Grids_Cent, mtbs_fire)
   Grids_Cent_Fire_Int <- as.data.frame(Grids_Cent_Fire_Int) %>%
     group_by(Grid_ID) %>%
@@ -462,6 +518,7 @@ for (i in 1:nrow(fires_int_df)){
   Grids <- merge(Grids, Grids_Cent_Fire_Int, by = "Grid_ID", all.x = T)  
   Grids[is.na(Grids$BURN), "BURN"] <- 0
   
+  ####   Create lags of whether a plots previous plot in the same direction burns or not ("BURN_LAG").
   
   Fire_Direction_Distance_Burned <- as.data.frame(Grids) %>%
     group_by(direction) %>%   # Group by direction (fire identifier)
@@ -481,7 +538,7 @@ for (i in 1:nrow(fires_int_df)){
   
   Grids <- mutate(Grids, YEARS_SINCE_TREAT = YEAR - YEAR_COMPLETE)
   
-  # For all the grids find the raster that it is closest to
+  #### For all the plots that don't burn find the raster that it is closest to - allows us to still calculate weather controls on the day of potential burn for unburned plots
   
   Grids_No_Burn <- st_transform(Grids_Cent, crs(fire))
   
@@ -520,7 +577,9 @@ for (i in 1:nrow(fires_int_df)){
   
   Grids_reproj <- st_transform(Grids, crs = st_crs(mtbsBS_year))
   
-  # Extract MTBS Burn Severity for each grid
+  ###### Extract mean ordinal MTBS Burn Severity ("BURN_SEV") and the percent of plot burned at moderate-high and high burn severity 
+  ######                                                            ("BURN_SEV_MED_HIGH_PCT" and "BURN_SEV_HIGH_PCT") for each grid.
+  
   Grids$BURN_SEV <- as.numeric(exact_extract(mtbsBS_year, Grids_reproj, "mean", progress = F))
   
   Grids <- mutate(Grids, BURN_SEV0 = ifelse(is.na(BURN_SEV) == T, 0, BURN_SEV)) # BURN_SEV0 codes non-burned grids as zeros
@@ -551,8 +610,7 @@ for (i in 1:nrow(fires_int_df)){
   Grids <- Grids[, c(setdiff(names(Grids), "geometry"), "geometry")] # make sure geometry is last column
   Grids <- dplyr::rename(Grids, distance_bin = distance_bin_end)
   
-  
-  ## Do treated directions ever hit treatment?
+  #### Create an indicator if the fire in a treated direction ever hits the treatment ("HIT_TREAT").
   
   Treat_Dir_Hit <- as.data.frame(Grids) %>%
     filter(Treated_Dir == 1) %>%
@@ -579,7 +637,6 @@ for (i in 1:nrow(fires_int_df)){
   Grids <- merge(Grids, Treat_Dist_Hit, by = c("direction", "TREAT_ID"), all.x = T)
   
   Grids[is.na(Grids$DIST_TREAT), "DIST_TREAT"] <- 0
-  
   
   ## Get the distance bins for each treatment that intersects with a fire (conditional not yet being extinguished - BURN_LAG == 1) in a given direction
   
@@ -618,7 +675,6 @@ for (i in 1:nrow(fires_int_df)){
   Grids[is.na(Grids$Pct_Burned_10Y), "Pct_Burned_10Y"] <- 0
   Grids[is.na(Grids$PREV_BURN_10Y), "PREV_BURN_10Y"] <- 0
   
-  
   #### Create fire-direction, fire-distance, fire-direction-distance FEs, & Burn Right Away Indicator (i.e. if fire intersects with treatment right away)
   
   Grids <- mutate(Grids, direction_distance_fire_FE = as.factor(paste(direction, distance_bin, FIRE_ID, sep = "-")),
@@ -649,7 +705,7 @@ for (i in 1:nrow(fires_int_df)){
   
   Grids <- mutate(Grids, NA_DELTA_MTT = ifelse(is.na(DELTA_MTT) == T | DELTA_MTT < 0, 1, 0))
   
-  #### Extract Fireline Intensity
+  #### Extract Fireline Intensity from MTT
   
   Grids_reproj <- st_transform(Grids, crs = st_crs(MTT_INT))
   
@@ -676,131 +732,11 @@ SpatialOLS_Grids <- merge(SpatialOLS_Grids, smoke_data, by = "FIRE_ID", all.x = 
 SpatialOLS_Grids <- mutate(SpatialOLS_Grids, FIRE_PM25_PER_ACRE = FIRE_PM25/FIRE_SIZE, 
                            FIRE_CO2_PER_ACRE = FIRE_CO2/FIRE_SIZE)
 
-## Save Spatial OLS grids
-
-# dir.create(here("data", "intermediate", "SpatialOLS_Grids_Shapefile_V2"))
-# 
-# st_write(SpatialOLS_Grids, here("data", "intermediate", "SpatialOLS_Grids_Shapefile_V2", "SpatialOLS_Grids.shp"), append=FALSE)
-
-
-
-
-# Grids <- mutate(Grids, Treatment_Cat = ifelse(Treated_Dir == 1 & POST == 1, "Treated", "Control"))
-# 
-# ei_tiles = get_tiles(st_buffer(fire_extent_poly, 4000), provider = "Esri.WorldTopoMap", zoom = 11, crop = TRUE)
-# 
-# min_val <- minValue(fire)
-# max_val <- maxValue(fire)
-# 
-# breaks <- seq(min_val - .5, max_val + .5, 1)
-# 
-# labels <- paste0("Day ", 1:length(breaks))
-# 
-# tmap_mode("plot")
-# 
-# pdf(here("output", "maps", "Burro_Fire_2017_Baseline.pdf"))
-# 
-# plot1 <- tm_shape(ei_tiles, is.master = T) +
-#   tm_rgb() +
-#   tm_shape(fire) +
-#   tm_raster(breaks = seq(180.5, 190.5, 1), title = "Day of Burn", labels = labels) +
-#   tm_shape(mtbs_fire_ig) +
-#   tm_symbols(col = "black", size = 0.01) +
-#   tm_shape(intersecting_facts) +
-#   tm_polygons(col = "TREATMENT_TYPE", palette = c("steelblue", "black"), lwd = 2, alpha = 0.35) +
-#   tm_layout(legend.outside = T)
-
-# print(plot1)
-# 
-# dev.off()
-# 
-# pdf(here("output", "maps", "Burro_Fire_2017_SpatialDiD.pdf"))
-# 
-# 
-# Grids <- mutate(Grids, Type = case_when(BURN_LAG == 0 | USFS_NF == 0 ~ "Missing",
-#                                         is.na(L_TAU) == T & BURN_LAG == 1 & USFS_NF == 1 ~ "Control",
-#                                         POST == 1 & BURN_LAG == 1 & USFS_NF == 1 ~ "Treated",
-#                                         POST == 0 & is.na(L_TAU) == F & BURN_LAG == 1 & USFS_NF == 1 ~ "Yet-to-be treated"))
-# 
-# Grids <- mutate(Grids, Treatment_Direction = case_when(Treated_Dir == 1 & USFS_NF == 1 ~ "Treated Direction",
-#                                                        Treated_Dir == 0 & USFS_NF == 1 ~ "Control Direction",
-#                                                        USFS_NF == 0 ~ "Missing"))
-# 
-# # # Plot using tmap
-# plot2 <- tm_shape(ei_tiles, is.master = T) +
-#   tm_rgb() +
-#   tm_shape(fire) +
-#   tm_raster(breaks = breaks, labels = labels, legend.show = F) +
-#   tm_shape(mtbs_fire_ig) +
-#   tm_symbols(col = "black", size = 0.01) +
-#   tm_shape(intersecting_facts) +
-#   tm_polygons(col = "TREATMENT_TYPE", palette = c("steelblue", "black"), lwd = 2, alpha = 0.35, title = "Treatment Type") +
-#   tm_shape(Grids) +
-#   tm_polygons(col = "Type",
-#               palette = c("Control" = "#e9c46a",           # Soft mustard yellow
-#                           "Yet-to-be treated" = "#a3d9a5",  # Light green
-#                           "Treated" = "#1b9e77",            # Dark green
-#                           "Missing" = "#cccccc"),           # Light gray
-#               title = "Treatment Status", alpha = 0.45) +
-#   tm_layout(legend.outside = T)
-# 
-# print(plot2)
-# 
-# dev.off()
-
-
-# tm_shape(ei_tiles, is.master = T) +
-#   tm_rgb() +
-#   tm_shape(fire) +
-#   tm_raster(breaks = breaks, title = "Day of Burn", labels = labels) +
-#   tm_shape(mtbs_fire_ig) +
-#   tm_symbols(col = "black", size = 0.01) +
-#   tm_shape(intersecting_facts) +
-#   tm_polygons(col = "TREATMENT_TYPE", palette = c("steelblue", "black"), lwd = 2, alpha = 0.35, title = "Treatment Type") +
-#   tm_shape(Grids) +
-#   tm_polygons(col = "Treated", alpha = 0.2) +
-#   tm_layout(legend.outside = T)
-
-
-
-# Grids_df <- as.data.frame(Grids)
-#
-# Treated_Directions <- Grids_df %>%
-#   group_by(direction) %>%
-#   summarise(MAX_BURN_DIST = max(distance_bin),
-#             L_TAU = dplyr::first(L_TAU)) %>%
-#   mutate(Event_Treated = ifelse(MAX_BURN_DIST >= L_TAU,  1, 0)) %>%
-#   dplyr::select(direction, Event_Treated)
-#
-# Grids_df <- merge(Grids_df, Treated_Directions, by = "direction", all.x = T)
-# Grids_df[is.na(Grids_df$Event_Treated), "Event_Treated"] <- 0
-# Grids_df <- mutate(Grids_df, time_to_treat = ifelse(Event_Treated == 1, as.numeric(distance_bin) - L_TAU, 0))
-#
-#
-#
-# Grids_df_filt <- filter(Grids_df, FIRE_NAME == "BURRO" & BURN_LAG == 1)
-# Grids_df_filt <- mutate(Grids_df_filt, ANY_TREATED = ifelse(time_to_treat >= 0, 1, 0))
-# Grids_df_filt <- mutate(Grids_df_filt, Treat_Post = ifelse(Treated_Dir == 1 & POST == 1, 1, 0))
-#
-# mod_twfe_1 = feols(BURN ~ i(time_to_treat, Event_Treated, ref = -1) |                    ## Other controls
-#                      direction + distance_bin,                             ## FEs                         ## Clustered SEs
-#                    data = Grids_df_filt)
-#
-# OLS_Burned2 <- feols(Burned ~ ANY_TREATED, Grids_df_filt, weights = ~Grid_Acres)
-#
-#
-# iplot(mod_twfe_1,
-#       xlab = 'Distance to first treatment (0.5 kilometers)',
-#       ylab = "Burn Probability",
-#       main = 'Event study - Fire-Direction & Fire-Distance FEs')
-
-
-
 ################ Calculate Grid Characteristics
 
 
-pacman::p_load(dplyr,sf, tmap, magrittr, rnaturalearth, rnaturalearthdata, ggplot2, maps, lwgeom, rgeos, raster, stars, haven, stargazer, quantmod, lubridate, tidyr, ggpubr,
-               rgdal, exactextractr, tictoc, terra, gtools, here, fixest, modelsummary, readr, rdrobust, prism, parallel,tmaptools,
+pacman::p_load(dplyr,sf, tmap, magrittr, rnaturalearth, rnaturalearthdata, ggplot2, maps, lwgeom, raster, stars, haven, stargazer, quantmod, lubridate, tidyr, ggpubr,
+               exactextractr, tictoc, terra, gtools, here, fixest, modelsummary, readr, rdrobust, prism, parallel,tmaptools,
                OpenStreetMap, maptiles, gifski, stringr, tidycensus)
 
 
@@ -817,7 +753,6 @@ Western_WUI <- st_read(here("data", "intermediate", "WUI", "western_wui_2010.shp
 ###### Fuel Type & Fire Regime Characteristics (MFRI)
 
 MFRI <- raster(here("data", "raw", "LANDFIRE", "US_140_MFRI", "Tif", "us_140mfri.tif"))
-
 FBFM13 <- raster(here("data", "raw", "LANDFIRE", "US_105_FBFM13", "Tif", "us_105fbfm13.tif")) # Fuel Model Type in LANDFIRE 2001
 
 ###### Load LANDFIRE Data
@@ -832,15 +767,6 @@ TRI <- terrain(elev, opt = "TRI")
 top_landfire <- stack(slope, aspect, elev, TRI) %>% terra::rast()
 
 
-# Load Exisiting Vegetation Type
-
-EVT <- raster(here("data", "raw", "LANDFIRE", "LF2020_EVT_220_CONUS", "Tif", "LC20_EVT_220.tif"))
-
-EVT_levels <- as.data.frame(levels(EVT))
-unique(EVT_levels$EVT_PHYS)
-
-filter(EVT_levels, EVT_PHYS == "Open Water") # Will use "Open Water" to determine if a grid is inside of a lake this corresponds to a value == 7292
-
 ###### Houses & Structures
 
 Buildings <- raster(here("data", "raw", "CommunitiesRisk", "CONUS", "BuildingCount_CONUS.tif"))
@@ -849,52 +775,39 @@ HUCount <- raster(here("data", "raw", "CommunitiesRisk", "CONUS", "HUCount_CONUS
 
 ###### Fire Suppression Effort
 
-QAQC <- st_read(here("data", "raw", "QAQC_lines", "qaqc_lines.shp")) %>% st_transform(crs = 5070)
+QAQC <- st_read(here("data", "raw", "QAQC", "FTE_containment.shp")) %>% st_transform(crs = 5070)
 
 unique(QAQC$FeatureCat)
 
 ## LAT Drops
 
-LAT_2017 <- st_read(here("data", "raw", "LAT", "drops17.shp")) %>% st_transform(crs = 5070)
-LAT_2017$YEAR <- 2017
-LAT_2017 <- dplyr::select(LAT_2017, YEAR)
-
-LAT_2018 <- st_read(here("data", "raw", "LAT", "drops18.shp")) %>% st_transform(crs = 5070)
-LAT_2018$YEAR <- 2018
-LAT_2018 <- dplyr::select(LAT_2018, YEAR)
-
-LAT_2019 <- st_read(here("data", "raw", "LAT", "drops19.shp")) %>% st_transform(crs = 5070)
-LAT_2019$YEAR <- 2019
-LAT_2019 <- dplyr::select(LAT_2019, YEAR)
-
-LAT_2020_2021 <- st_read(here("data", "raw", "LAT", "drops20_21.shp")) %>% st_transform(crs = 5070)
-LAT_2020_2021 <- mutate(LAT_2020_2021, YEAR = localYear1)
-LAT_2020_2021 <- dplyr::select(LAT_2020_2021, YEAR)
-
-LAT_2022 <- st_read(here("data", "raw", "LAT", "2022_Full_Year_03112024_VLAT.shp")) %>% st_transform(crs = 5070)
-LAT_2022 <- mutate(LAT_2022, YEAR = Year)
-LAT_2022 <- dplyr::select(LAT_2022, YEAR)
-
-LAT_2023 <- st_read(here("data", "raw", "LAT", "2023_Full_Year_03112024_VLAT.shp")) %>% st_transform(crs = 5070)
-LAT_2023 <- mutate(LAT_2023, YEAR = Year)
-LAT_2023 <- dplyr::select(LAT_2023, YEAR)
-
-LAT <- rbind(LAT_2017, LAT_2018, LAT_2019, LAT_2020_2021, LAT_2022, LAT_2023)
-
-## ACS Data
-
-# ACS_2016_2020 <- read_csv(here("data", "raw", "ACS", "ACS_2016_2020_csv", "nhgis0001_ds249_20205_blck_grp.csv"))
-# ACS_2016_2020_sf <- st_read(here("data", "raw", "ACS", "ACS_2016_2020_shape", "US_blck_grp_2020.shp"))
-# 
-# ACS_2016_2020 <- dplyr::select(ACS_2016_2020, GISJOIN, AMWBE001) %>% dplyr::rename(MED_HOUSE_VAL = AMWBE001)
-# ACS_2016_2020_sf <- dplyr::select(ACS_2016_2020_sf, GISJOIN)
-# 
-# ACS_2016_2020_sf <- merge(ACS_2016_2020_sf, ACS_2016_2020, by = "GISJOIN") %>% st_transform(crs = 5070)
-
-
+  LAT_2017 <- st_read(here("data", "raw", "LAT", "drops17.shp")) %>% st_transform(crs = 5070)
+  LAT_2017$YEAR <- 2017
+  LAT_2017 <- dplyr::select(LAT_2017, YEAR)
+  
+  LAT_2018 <- st_read(here("data", "raw", "LAT", "drops18.shp")) %>% st_transform(crs = 5070)
+  LAT_2018$YEAR <- 2018
+  LAT_2018 <- dplyr::select(LAT_2018, YEAR)
+  
+  LAT_2019 <- st_read(here("data", "raw", "LAT", "drops19.shp")) %>% st_transform(crs = 5070)
+  LAT_2019$YEAR <- 2019
+  LAT_2019 <- dplyr::select(LAT_2019, YEAR)
+  
+  LAT_2020_2021 <- st_read(here("data", "raw", "LAT", "drops20_21.shp")) %>% st_transform(crs = 5070)
+  LAT_2020_2021 <- mutate(LAT_2020_2021, YEAR = localYear1)
+  LAT_2020_2021 <- dplyr::select(LAT_2020_2021, YEAR)
+  
+  LAT_2022 <- st_read(here("data", "raw", "LAT", "2022_Full_Year_03112024_VLAT.shp")) %>% st_transform(crs = 5070)
+  LAT_2022 <- mutate(LAT_2022, YEAR = Year)
+  LAT_2022 <- dplyr::select(LAT_2022, YEAR)
+  
+  LAT_2023 <- st_read(here("data", "raw", "LAT", "2023_Full_Year_03112024_VLAT.shp")) %>% st_transform(crs = 5070)
+  LAT_2023 <- mutate(LAT_2023, YEAR = Year)
+  LAT_2023 <- dplyr::select(LAT_2023, YEAR)
+  
+  LAT <- rbind(LAT_2017, LAT_2018, LAT_2019, LAT_2020_2021, LAT_2022, LAT_2023)
 
 ######## Calculate Observable Characteristics of Grids
-
 
 #### Get Weather Characteristics on day of burn
 
@@ -982,7 +895,6 @@ extract_gridMET_data <- function(OLS_Grids){
   
   return(df)
 }
-
 
 
 ## Set up number of cores for parallel processing
@@ -1099,8 +1011,6 @@ temp <- mclapply(
 )
 OLS_Grids$FBFM13 <- unlist(temp)
 
-# OLS_Grids$FBFM13 <- as.numeric(raster::extract(FBFM13, OLS_Grids_Centroids))
-
 rm(FBFM13)
 
 # Will categorize each grid into either "Grass", "Shrub", "Timber", "Slash", or "Other" Fuel Types based on - https://www.fs.usda.gov/rm/pubs/rmrs_gtr175/rmrs_gtr175_367_396.pdf
@@ -1115,21 +1025,7 @@ OLS_Grids <- mutate(OLS_Grids,
 
 toc()
 
-
-OLS_Grids_Centroids_reproj <- st_transform(OLS_Grids_Centroids, crs = st_crs(EVT))
-
-tic()
-
-temp <- mclapply(
-  1:(num_cores + 1),
-  function(i) as.numeric(raster::extract(EVT, filter(OLS_Grids_Centroids_reproj, group_id == i))),
-  mc.cores = (num_cores + 1)
-)
-OLS_Grids$EVT <- unlist(temp)
-
-OLS_Grids <- mutate(OLS_Grids, WATER = ifelse(is.na(EVT) == F & EVT == 7292, 1, 0))
-
-#### iv) Calculate Distance to USFS Road, US Highway, and WUI (or structures later on)
+#### iv) Calculate Distance to USFS Road, US Highway, and WUI
 
 ## Distance to USFS Road
 tic()
@@ -1195,7 +1091,6 @@ OLS_Grids$Struc_Count <- unlist(temp)
 
 rm(Buildings)
 
-
 # Housing Count
 
 OLS_Grids_reproj <- st_transform(OLS_Grids, crs = st_crs(HUCount))
@@ -1212,20 +1107,6 @@ toc()
 OLS_Grids$HU_Count <- unlist(temp)
 
 rm(HUCount)
-
-
-# ## For grids with Non-zero buildings or structures calculate the median housing value from ACS
-# 
-# OLS_Grids_struc <- filter(OLS_Grids, HU_Count > 0 | Struc_Count > 0) %>% st_centroid()
-# 
-# Grids_ACS_Int <- st_intersection(OLS_Grids_struc, ACS_2016_2020_sf) %>%
-#   as.data.frame() %>%
-#   dplyr::select(ID, MED_HOUSE_VAL)
-# 
-# OLS_Grids <- merge(OLS_Grids, Grids_ACS_Int, by = "ID", all.x = T)
-# 
-# OLS_Grids <- mutate(OLS_Grids, TOT_HOUSE_VAL = MED_HOUSE_VAL*HU_Count, TOT_STRUC_VAL = MED_HOUSE_VAL*Struc_Count)
-
 
 #### vi) Fire Suppression Effort Variables
 
@@ -1264,7 +1145,7 @@ OLS_Grids <- mutate(OLS_Grids, SUP_LINE_INT = SUP_LINE_LEN/Grid_Acres)
 ## Get Distance to LAT Drops
 
 OLS_Grids_final <- OLS_Grids[0,]
-
+  
 for (yr in seq(2017, 2023, 1)){
   
   print(yr)
@@ -1304,4 +1185,4 @@ OLS_Grids_final <- mutate(OLS_Grids_final, LAT_LINE_INT = LAT_LINE_LEN/Grid_Acre
 
 OLS_Grids_df <- as.data.frame(OLS_Grids_final) %>% subset(select = -c(geometry, grid_id, group_id))
 
-write_csv(OLS_Grids_df, here("data", "intermediate", "SpatialDiD_Grids_v3_24L_Incomp.csv"))
+write_csv(OLS_Grids_df, here("data", "intermediate", "SpatialDiD_Grids_24L_K05_Incomp.csv"))

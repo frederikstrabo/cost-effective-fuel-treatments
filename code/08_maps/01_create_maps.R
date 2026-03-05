@@ -2,24 +2,28 @@
 
 ################# Purpose: Creates maps of fires used to create Figure 2 and Figure S2.
 ################# Outputs: i) Figure 2 saved as "Figure2.pdf" stored in "output/figures".
-#################           ii) Figure S2 saved as "Fire-FT-Examples.pdf" in "output/figures".
+#################         ii) Figure S2 saved as "FigureS2.pdf" in "output/figures".
+
+################# Estimated run time: ~ 9 min
 
 rm(list=ls())
 
-if (!require("pacman")) install.packages("pacman")
-pacman::p_load(dplyr,sf, tmap, magrittr, rnaturalearth, rnaturalearthdata, ggplot2, maps, lwgeom, rgeos, raster, stars, haven, stargazer, quantmod, lubridate, tidyr, ggpubr, 
-               rgdal, exactextractr, tictoc, terra, gtools, here, fixest, modelsummary, readr, rdrobust, prism, parallel,tmaptools, 
+# if (!require("pacman")) install.packages("pacman")
+pacman::p_load(dplyr,sf, tmap, magrittr, rnaturalearth, rnaturalearthdata, ggplot2, maps, lwgeom, raster, stars, haven, stargazer, quantmod, lubridate, tidyr, ggpubr, 
+               exactextractr, tictoc, terra, gtools, here, fixest, modelsummary, readr, rdrobust, prism, parallel,tmaptools, 
                OpenStreetMap, maptiles, gifski, purrr, nngeo, stringr, magick, geosphere)
 
 
 # Set Path
-here::i_am("code/08_maps/create_maps.R")
+here::i_am("code/08_maps/01_create_maps.R")
 
 # Load Functions 
 
 source(here("code", "functions","tidy_facts.R"))
 source(here("code", "functions","calculate_distance.R"))
 st_erase = function(x, y) st_difference(x, st_make_valid(st_union(st_combine(y)))) # Taken from here https://r-spatial.github.io/sf/reference/geos_binary_ops.html
+
+tic()
 
 ########    Load in Datasets    ########
 
@@ -80,7 +84,7 @@ write_csv(tibble(FIRE_ID = mtbs_2006_2023_df$FIRE_ID), here("data", "intermediat
 
 #### Firelines
 
-QAQC <- st_read(here("data", "raw", "QAQC_lines", "qaqc_lines.shp")) %>% st_transform(crs = 5070)
+QAQC <- st_read(here("data", "raw", "QAQC", "FTE_containment.shp")) %>% st_transform(crs = 5070)
 
 QAQC$year <- substr(QAQC$incnum1, 1, 4)
 
@@ -123,10 +127,13 @@ LAT <- rbind(LAT_2017, LAT_2018, LAT_2019, LAT_2020_2021, LAT_2022, LAT_2023)
 fires_int_df <- read_csv(here("data", "intermediate", "FACTS_Parks_Fire_List.csv"))
 
 
+##################     Build Figure 2       ##################   
 
-###### Build Figure 1
+#### This uses code from "05_panel/01_build_plot_panel.R" to create the plots used in the figure
 
-# i = 8 Cellar Fire, i = 1 Burro Fire
+# i = 1 Burro Fire
+
+###### Code from "01_build_plot_panel.R"
 
 i = 1
 
@@ -143,28 +150,11 @@ fire_size <- mtbs_fire$ACRES
 
 mtbs_fire_ig <- filter(mtbs_point, FIRE_ID == fire_id)
 
-MTT <- raster(here("data", "intermediate", "FB", "TestMTT", "MTT_Inputs", 
+MTT <- raster(here("data", "raw", "FB", "TestMTT", "MTT_Inputs", 
                    "MTT_Output", paste0("fire", n, "_ArrivalTime.asc")))
 
-MTT_INT <- raster(here("data", "intermediate", "FB", "TestMTT", "MTT_Inputs", 
+MTT_INT <- raster(here("data", "raw", "FB", "TestMTT", "MTT_Inputs", 
                        "MTT_Output", paste0("fire", n, "_INTENSITY.asc")))
-
-#### Get ignition point from centroid of first day
-
-# # Step 1: Find the minimum value in the raster
-# min_day <- minValue(fire)
-# 
-# # Step 2: Create a mask for cells with the minimum value
-# ignition_mask <- fire == min_day
-# 
-# # Step 3: Convert the mask to polygons
-# ignition_polygons <- rasterToPolygons(ignition_mask, fun = function(x) x == 1, dissolve = TRUE)
-# 
-# # Step 4: Convert polygons to an sf object for centroids
-# ignition_sf <- st_as_sf(ignition_polygons)
-# 
-# # Step 5: Compute the centroid
-# mtbs_fire_ig <- st_centroid(ignition_sf) %>% st_transform(crs = 5070)
 
 mtbsBS_year <- raster(here("data", "raw", "MTBS", "MTBS_BSmosaics", fire_year, paste0("mtbs_CONUS_", fire_year, ".tif")))
 
@@ -308,7 +298,6 @@ for (i in 1:num_angles) {
 # Combine all polygons into one sf object
 direction_distance_sf <- do.call(rbind, direction_distance_polygons)
 direction_distance_sf <- st_make_valid(direction_distance_sf)
-
 
 #### Get the dominant angle of spread for each direction
 
@@ -539,7 +528,6 @@ Grids$FIRE_NAME <- fire_name
 Grids <- Grids[, c(setdiff(names(Grids), "geometry"), "geometry")] # make sure geometry is last column
 Grids <- dplyr::rename(Grids, distance_bin = distance_bin_end)
 
-
 ## Do treated directions ever hit treatment?
 
 Treat_Dir_Hit <- as.data.frame(Grids) %>%
@@ -653,11 +641,15 @@ Grids <- subset(Grids, select = -c(distance_bin_start, Grid_ID, YEAR_COMPLETE))
 Grids <- Grids %>%
   dplyr::select(ID, everything())
 
+###### End of code from "01_build_plot_panel.R"
 
 Grids <- mutate(Grids, Treatment_Cat = ifelse(Treated_Dir == 1 & POST == 1, "Treated", "Control"))
 
+# get the background for the figure
+
 ei_tiles = get_tiles(st_buffer(fire_extent_poly, 4000), provider = "Esri.WorldTopoMap", zoom = 11, crop = TRUE)
 
+# min and max day burned
 min_val <- minValue(fire)
 max_val <- maxValue(fire)
 
@@ -718,7 +710,7 @@ print(plot1)
 dev.off()
 
 
-###### Aside - Create .gif for this map for presentations
+###### Aside - Create .gif for this map for presentations #######
 
 # Define burn days
 unique_days <- sort(unique(values(fire)))
@@ -759,8 +751,7 @@ img_list <- image_read(frames)
 img_gif <- image_animate(image_join(img_list), fps = 1)  # adjust fps as desired
 image_write(img_gif, here("output", "Burro_Progression.gif"))
 
-
-
+###### End of aside  #######
 
 ###### Create Spatial DiD figure 
 
@@ -840,63 +831,7 @@ print(plot2)
 dev.off()
 
 
-
-# #### Aside Create images with only directions
-
-# tm_shape(ei_tiles, is.master = T) +
-#   tm_rgb() +
-#   tm_shape(mtbs_fire) +
-#   tm_polygons(col = "red", alpha = 0.2) +
-#   tm_shape(intersecting_facts) +
-#   tm_polygons(col = "TREATMENT_TYPE", palette = c("black", "steelblue"), lwd = 2, alpha = 0.35, title = "Treatment Type") +
-#   tm_layout(legend.outside = T)
-# 
-# 
-# tm_shape(ei_tiles, is.master = T) +
-#   tm_rgb() +
-#   tm_shape(mtbs_fire) +
-#   tm_polygons(col = "red", alpha = 0.2) +
-#   tm_shape(mtbs_fire_ig) +
-#   tm_symbols(col = "black", size = 0.01) +
-#   tm_shape(intersecting_facts) +
-#   tm_polygons(col = "TREATMENT_TYPE", palette = c("black", "steelblue"), lwd = 2, alpha = 0.35, title = "Treatment Type") +
-#   tm_shape(rays_sf) +
-#   tm_lines() + 
-#   tm_layout(legend.outside = T)
-# 
-# 
-# tm_shape(ei_tiles, is.master = T) +
-#   tm_rgb() +
-#   tm_shape(mtbs_fire) +
-#   tm_polygons(col = "red", alpha = 0.2) +
-#   tm_shape(mtbs_fire_ig) +
-#   tm_symbols(col = "black", size = 0.01) +
-#   tm_shape(intersecting_facts) +
-#   tm_polygons(col = "TREATMENT_TYPE", palette = c("black", "steelblue"), lwd = 2, alpha = 0.35, title = "Treatment Type") +
-#   tm_shape(Grids) +
-#   tm_polygons(col = "orange", alpha = 0.2) +
-#   tm_layout(legend.outside = T)
-# 
-# tm_shape(ei_tiles, is.master = T) +
-#   tm_rgb() +
-#   tm_shape(mtbs_fire) +
-#   tm_polygons(col = "red", alpha = 0.2) +
-#   tm_shape(mtbs_fire_ig) +
-#   tm_symbols(col = "black", size = 0.01) +
-#   tm_shape(intersecting_facts) +
-#   tm_polygons(col = "TREATMENT_TYPE", palette = c("steelblue", "black"), lwd = 2, alpha = 0.35, title = "Treatment Type") +
-#   tm_shape(Grids) +
-#   tm_polygons(col = "Type",
-#               palette = c("Control" = "#e9c46a",           # Soft mustard yellow
-#                           "Yet-to-be treated" = "#a3d9a5",  # Light green
-#                           "Treated" = "#1b9e77",            # Dark green
-#                           "Excluded" = "#cccccc"),           # Light gray
-#               title = "Treatment Status", alpha = .65) + 
-#   tm_text("time_to_treat", size = 1, col = "black", auto.placement = TRUE) +
-#   tm_layout(legend.outside = T)
-
-
-# Save maps to images
+# Save maps to images to later resize
 tmap_save(plot1, here("output", "maps", "Burro_Fire_2017_Baseline.png"),
           width = 8, height = 6, units = "in", dpi = 300,
           outer.margins = 0)
@@ -941,6 +876,8 @@ trim_and_match(img_path1, img_path2)
 img1 <- ggdraw() + draw_image(here("output", "maps", "Burro_Fire_2017_Baseline.png")) 
 img2 <- ggdraw() + draw_image(here("output", "maps", "Burro_Fire_2017_SpatialDiD.png"))
 
+## Create layout of Figure 2
+
 final_plot <- (img1 | img2) +
   plot_annotation(tag_levels = 'A') &
   theme(
@@ -952,6 +889,7 @@ final_plot <- (img1 | img2) +
     panel.spacing = unit(3, "lines")
   )
 
+## Save Figure 2
 
 ggsave(here("output", "figures", "Figure2.pdf"), final_plot,        
        width  = 7.24,          # Science 3-column width
@@ -960,71 +898,72 @@ ggsave(here("output", "figures", "Figure2.pdf"), final_plot,
        dpi    = 300)
 
 
-#### Map of Full Sample
+# #### Map of Full Sample
+# 
+# ## get full set of fires
+# 
+# MTBS_IDs <- unique(fires_int_df$ID)
+# 
+# mtbs_sample <- filter(mtbs, FIRE_ID %in% MTBS_IDs) %>% st_transform(crs = 3857)
+# 
+# usa <- rnaturalearth::ne_states(country = "United States of America", returnclass = "sf") %>%
+#   st_transform(crs = 3857)
+# 
+# Western_States <- c("Washington", "Oregon", "California", "Idaho", "Utah", "Arizona",
+#                     "New Mexico", "Montana", "Colorado", "Wyoming", "Nevada")
+# 
+# usa_western <- filter(usa, woe_name %in% Western_States)
+# 
+# ei_tiles <- get_tiles(st_bbox(usa_western), provider = "Esri.WorldTopoMap", zoom = 6, crop = TRUE)
+# 
+# # High-quality map
+# tmap_mode("plot")  # Ensures static map for journal-quality output
+# 
+# # Expand the bounding box by adding a buffer (e.g., 0.05 units)
+# burro_buffer <- st_buffer(mtbs_fire_ig, dist = 50000) %>% st_transform(crs = 3857)
+# 
+# pdf(here("output", "maps", "SampleFires.pdf"))
+# 
+# plot3 <- tm_shape(usa_western) +
+#   tm_polygons(col = "grey90", border.col = "black", lwd = 1) +  # Light grey background, black borders
+#   tm_shape(mtbs_sample) +
+#   tm_polygons(col = "red3", alpha = 0.6, border.col = "black", lwd = 0.5) +  # Fires in deep red
+#   # tm_shape(burro_buffer) +
+#   # tm_borders(lwd = 3, col = "steelblue", alpha = 0.8) +
+#   tm_layout(title = "",
+#             title.position = c("center", "top"),
+#             legend.position = c("right", "bottom"),
+#             legend.text.size = 1.2,
+#             legend.title.size = 1.5,
+#             frame = FALSE)  # Removes default frame
+# 
+# print(plot3)
+# 
+# dev.off()
+# 
+# 
+# tmap_save(plot3, here("output", "maps", "SampleFires.png"))
+# 
+# 
+# 
+# img3 <- ggdraw() + draw_image(here("output", "maps", "SampleFires.png"))
+# 
+# 
+# top_row <- img3 + 
+#   plot_annotation(tag_levels = 'a') & 
+#   theme(plot.tag.position = c(0.3, 0.98))  # only affects this row
+# 
+# bottom_row <- img1 | img2 + 
+#   plot_annotation(tag_levels = 'a') 
+# 
+# final_layout <- top_row / bottom_row +
+#   plot_layout(heights = c(1.3, 1.1)) +
+#   plot_annotation(tag_levels = 'a')
+# 
+# final_layout 
 
-## get full set of fires
 
-MTBS_IDs <- unique(fires_int_df$ID)
-
-mtbs_sample <- filter(mtbs, FIRE_ID %in% MTBS_IDs) %>% st_transform(crs = 3857)
-
-usa <- rnaturalearth::ne_states(country = "United States of America", returnclass = "sf") %>%
-  st_transform(crs = 3857)
-
-Western_States <- c("Washington", "Oregon", "California", "Idaho", "Utah", "Arizona",
-                    "New Mexico", "Montana", "Colorado", "Wyoming", "Nevada")
-
-usa_western <- filter(usa, woe_name %in% Western_States)
-
-ei_tiles <- get_tiles(st_bbox(usa_western), provider = "Esri.WorldTopoMap", zoom = 6, crop = TRUE)
-
-# High-quality map
-tmap_mode("plot")  # Ensures static map for journal-quality output
-
-# Expand the bounding box by adding a buffer (e.g., 0.05 units)
-burro_buffer <- st_buffer(mtbs_fire_ig, dist = 50000) %>% st_transform(crs = 3857)
-
-pdf(here("output", "maps", "SampleFires.pdf"))
-
-plot3 <- tm_shape(usa_western) +
-  tm_polygons(col = "grey90", border.col = "black", lwd = 1) +  # Light grey background, black borders
-  tm_shape(mtbs_sample) +
-  tm_polygons(col = "red3", alpha = 0.6, border.col = "black", lwd = 0.5) +  # Fires in deep red
-  # tm_shape(burro_buffer) +
-  # tm_borders(lwd = 3, col = "steelblue", alpha = 0.8) +
-  tm_layout(title = "",
-            title.position = c("center", "top"),
-            legend.position = c("right", "bottom"),
-            legend.text.size = 1.2,
-            legend.title.size = 1.5,
-            frame = FALSE)  # Removes default frame
-
-print(plot3)
-
-dev.off()
-
-
-tmap_save(plot3, here("output", "maps", "SampleFires.png"))
-
-
-
-img3 <- ggdraw() + draw_image(here("output", "maps", "SampleFires.png"))
-
-
-top_row <- img3 + 
-  plot_annotation(tag_levels = 'a') & 
-  theme(plot.tag.position = c(0.3, 0.98))  # only affects this row
-
-bottom_row <- img1 | img2 + 
-  plot_annotation(tag_levels = 'a') 
-
-final_layout <- top_row / bottom_row +
-  plot_layout(heights = c(1.3, 1.1)) +
-  plot_annotation(tag_levels = 'a')
-
-final_layout 
-
-
+##################     Build Figure S2       ##################   
 
 #### Examples of different fires & fuel treatments
 
@@ -1035,6 +974,8 @@ fire_examples <- c(4, 8, 105, 46)
 plot_list <- list()
 
 for (i in fire_examples){
+  
+  #### Again using code from "01_build_plot_panel.R"
   
   n = i
   
@@ -1065,10 +1006,10 @@ for (i in fire_examples){
   
   mtbs_fire_ig <- filter(mtbs_point, FIRE_ID == fire_id)
   
-  MTT <- raster(here("data", "intermediate", "FB", "TestMTT", "MTT_Inputs", 
+  MTT <- raster(here("data", "raw", "FB", "TestMTT", "MTT_Inputs", 
                      "MTT_Output", paste0("fire", n, "_ArrivalTime.asc")))
   
-  MTT_INT <- raster(here("data", "intermediate", "FB", "TestMTT", "MTT_Inputs", 
+  MTT_INT <- raster(here("data", "raw", "FB", "TestMTT", "MTT_Inputs", 
                          "MTT_Output", paste0("fire", n, "_INTENSITY.asc")))
   
   #### Get ignition point from centroid of first day
@@ -1575,6 +1516,8 @@ for (i in fire_examples){
   Grids <- Grids %>%
     dplyr::select(ID, everything())
   
+  #### end of code from "01_build_plot_panel.R"
+  
   
   ei_tiles = get_tiles(st_buffer(fire_extent_poly, 4000), provider = "Esri.WorldTopoMap", zoom = 11, crop = TRUE)
   
@@ -1698,20 +1641,23 @@ B <- Cellar_Fire_Plot + lab_style("B") + common_inside_bottom
 C <- Cougar_Creek_Fire_Plot + lab_style("C") + common_inside_bottom
 D <- four16_Fire_Plot + lab_style("D") + common_inside_bottom
 
+#### Arange four fires using tmap_arrange
 
 fig <- tmap_arrange(A, B, C, D, ncol = 2
                     #,widths = c(0.46, 0.54)  # right column gets more width
 )
 
+#### Save Figure S2
+
 tmap_save(
   fig,
-  here("output", "figures", "Fire-FT-Examples.pdf"),
+  here("output", "figures", "FigureS2.pdf"),
   width = 7.24, height = 7, units = "in",,
   dpi    = 300,
   device = cairo_pdf
 )
 
-
+toc()
 
 
 

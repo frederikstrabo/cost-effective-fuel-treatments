@@ -1,8 +1,10 @@
 ##########################################    01_dob_interpolation.R   ##########################################
 
-################# Purpose: Create a day of burning rasters for the fires in our sample from 2020-2023
+################# Purpose: Create a day of burning rasters for the fires in our sample from 2020-2023.
 
 ################# Output: Folder of day of burning rasters called "Jan2025_DOB_fires" saved in data/raw/PARKS
+
+################ **Note**: if the user would like to check running the code on subsample of 5 fires uncomment line 125. 
 
 # Original Author: Sean Parks (sean.parks@usda.gov)
 # Date: 11.27.2023
@@ -23,7 +25,7 @@
 
 rm(list=ls())
 
-if (!require("pacman")) install.packages("pacman")
+# if (!require("pacman")) install.packages("pacman")
 pacman::p_load(FNN, timeDate, terra, igraph, sf, lubridate, parallel, plyr, dplyr, rstudioapi, here)
 
 # Set Path
@@ -33,7 +35,7 @@ here::i_am("code/02_fire_progression/01_dob_interpolation.R")
 mtbs <- st_read(here("data", "raw", "MTBS", "mtbs_perims_DD.shp"))
 mtbs_list <- mtbs %>% dplyr::select(Event_ID, Ig_Date)
 mtbs_list <- mtbs_list %>% st_drop_geometry()
-write.csv(mtbs_list, here("data", "raw", "fire_list.csv"))
+write.csv(mtbs_list, here("data", "raw", "MTBS", "fire_list.csv"))
 
 # Subsetting to only FACTS fires
 facts <- read.csv(here("data", "intermediate", "FACTS_MTBS_Fire_List.csv"))
@@ -408,7 +410,7 @@ dob_interpolation <- function(year) {
           
           modeled.dob <- rast(xyz, type = "xyz", crs = the_prj)
           
-          dob_tif_path <- file.path(dob_tif_dir, paste0(fire, "_", day_frac, "_dob_tmp.tif"))
+          dob_tif_path <- file.path(dob_tif_dir, paste0(fire, "_", day_frac, "_dob.tif"))
           writeRaster(modeled.dob, dob_tif_path, datatype = data_type, overwrite = TRUE)
           
           # plot(modeled.dob, 
@@ -449,7 +451,7 @@ raster_smoothing <- function(year) {
     # creating a "here" path for next if/then function    
     dob_tif_path <- file.path(
       here("data", "raw", "PARKS", "Jan2025_DOB_fires"),
-      paste0(fire, "_", day_frac, "_dob_tmp.tif")
+      paste0(fire, "_", day_frac, "_dob.tif")
     )
     
     ## This is a check because stage 1 and 2 does not produce files if there are not enough fire detections

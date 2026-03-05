@@ -2,39 +2,26 @@
 
 ################# Purpose: Creates landscape files, fire ignition shapefiles, input, and command files to run MTT simulations in FlamMap
 
-#### Outputs: i) landscape.tif files for all fires saved in "data/intermediate/MTT_Landscapes" - these will be converted into .lcp files used in FlamMap
-####          ii)  fire ignition shapefiles saved in "data/raw/FB/TestMTT/MTT_Inputs" - these are used in FlamMap simulations
-####          iii) fire .input files saved in "data/raw/FB/TestMTT/MTT_Inputs" - these are used in FlamMap simulations
-####          iv) "simulateCMD.txt" and "simulate.bat" saved in "data/raw/FB/TestMTT/MTT_Inputs" - code to be run in the terminal that runs the MTT simulations
+################# Outputs: i) landscape.tif files for all fires saved in "data/intermediate/MTT_Landscapes" - these will be converted into .lcp files used in FlamMap
+#################         ii)  fire ignition shapefiles saved in "data/raw/FB/TestMTT/MTT_Inputs" - these are used in FlamMap simulations
+#################         iii) fire .input files saved in "data/raw/FB/TestMTT/MTT_Inputs" - these are used in FlamMap simulations
+#################         iv) "simulateCMD.txt" and "simulate.bat" saved in "data/raw/FB/TestMTT/MTT_Inputs" - code to be run in the terminal that runs the MTT simulations
+
+################# Estimated run time: ~45 min
 
 rm(list=ls())
 
-if (!require("pacman")) install.packages("pacman")
-pacman::p_load(dplyr,sf, tmap, magrittr, rnaturalearth, rnaturalearthdata, ggplot2, maps, lwgeom, rgeos, raster, stars, haven, stargazer, quantmod, lubridate, tidyr, ggpubr, 
-               rgdal, exactextractr, tictoc, gtools, here, fixest, modelsummary, readr, rdrobust, prism, parallel,tmaptools, 
+# if (!require("pacman")) install.packages("pacman")
+pacman::p_load(dplyr,sf, tmap, magrittr, rnaturalearth, rnaturalearthdata, ggplot2, maps, lwgeom, raster, stars, haven, stargazer, quantmod, lubridate, tidyr, ggpubr, 
+               exactextractr, tictoc, gtools, here, fixest, modelsummary, readr, rdrobust, prism, parallel,tmaptools, 
                OpenStreetMap, maptiles, gifski, purrr, nngeo, stringr, terra)
 
 
 # Set Path
 here::i_am("code/04_mtt/01_build_mtt_landscapes.R")
 
-# Load Functions 
-
-source(here("code", "functions","tidy_facts.R"))
-source(here("code", "functions","calculate_distance.R"))
-st_erase = function(x, y) st_difference(x, st_make_valid(st_union(st_combine(y)))) # Taken from here https://r-spatial.github.io/sf/reference/geos_binary_ops.html
 
 ########    Load in Datasets    ########
-
-#### FACTS - Forest Service Fuel Treatments
-
-facts <- st_read(here("data", "raw", "FACTS", "S_USA.Activity_HazFuelTrt_PL.shp"))
-facts <- tidy_facts(facts, inf_yr = 2020, crs = 5070)
-facts$ROW_ID <- 1:nrow(facts)
-
-# distinguish completed & incomplete projects
-facts_comp <- filter(facts, COMPLETE == 1)
-facts_incomp <- filter(facts, COMPLETE == 0)
 
 #### Load in Parks Daily Fire Perimeters
 
@@ -109,6 +96,15 @@ dir.create(here("data", "intermediate", "MTT_Landscapes"))
 # Initialize an empty vector
 skipped_rounds <- c()
 
+
+######## The goal of this loop is for each fire in our sample to: i) save the first day of ignition burning polygon
+########    ii) create the set of plots that define our sample region of interest, iii) within this region
+########     crop the relevant landfire variables to create a landscape raster layer that we save.
+########    Finally, we iv) calculate the wind speed and direction at the day and location of ignition based on gridMET.
+
+
+#### This uses code from the function "create_SpatialDiD_Grids" in the script "01_build_plot_panel.R"
+
 for (i in 1:nrow(fires_int_df)){
   
   print(i)
@@ -125,7 +121,7 @@ for (i in 1:nrow(fires_int_df)){
   fire_year <- mtbs_fire$YEAR_MTBS
   fire_size <- mtbs_fire$ACRES
   
-  # mtbs_fire_ig <- filter(mtbs_point, FIRE_ID == fire_id)
+  mtbs_fire_ig <- filter(mtbs_point, FIRE_ID == fire_id)
   
   DOB <- as.Date(mtbs_fire_ig$Ig_Date)
   
@@ -148,30 +144,7 @@ for (i in 1:nrow(fires_int_df)){
   
   mtbsBS_year <- raster(here("data", "raw", "MTBS", "MTBS_BSmosaics", fire_year, paste0("mtbs_CONUS_", fire_year, ".tif")))
   
-  # intersect MTBS w/FACTS
-  mtbs_facts_comp_int <- st_intersection(mtbs_fire, facts_comp)
-  mtbs_facts_incomp_int <- st_intersection(mtbs_fire, facts_incomp)
-  
-  mtbs_facts_comp_int_filt <- as.data.frame(subset(mtbs_facts_comp_int, YEAR < YEAR_MTBS | YEAR == YEAR_MTBS & MONTH < MONTH_MTBS)) %>%
-    filter(YEAR > 2004) %>%
-    filter(YEAR_MTBS - YEAR <= 10)
-  
-  mtbs_facts_incomp_int_filt <- as.data.frame(subset(mtbs_facts_incomp_int, YEAR_PLANNED < YEAR_MTBS | YEAR_PLANNED == YEAR_MTBS & MONTH_PLANNED < MONTH_MTBS)) %>%
-    filter(YEAR_PLANNED > 2004)
-  
-  mtbs_facts_int_filt <- rbind(mtbs_facts_comp_int_filt, mtbs_facts_incomp_int_filt)
-  
-  treatment_IDs <- unique(mtbs_facts_int_filt$ROW_ID)
-  
   fire_extent_poly <- st_as_sfc(st_bbox(fire))
-  
-  # Find intersecting fuel treatments
-  intersecting_facts <- filter(facts, ROW_ID %in% treatment_IDs)
-  intersecting_facts <- filter(intersecting_facts, COMPLETE == 1) # Only look at complete projects for now
-  
-  # if (nrow(intersecting_facts) == 0){
-  #   next
-  # }
   
   # Get the boundary of the fire perimeter
   fire_boundary <- st_boundary(mtbs_fire)
@@ -355,50 +328,13 @@ for (i in 1:nrow(fires_int_df)){
   WS <- round(ig_wind_speed_dir$WindSpeed, digits = 0)
   WD <- ig_wind_speed_dir$WindDirection
   
-  #### Get Fuel Moisture Conditions at ignition point and time of ignition
-  
-  # fm100_yr <- rast(here("data", "raw", "gridMET", paste("fm100_", fire_year, ".nc", sep = ""))) # Fuel Moisture 100 hour fuels
-  # fm1000_yr <- rast(here("data", "raw", "gridMET", paste("fm1000_", fire_year, ".nc", sep = ""))) # Fuel Moisture 1000 hour fuels
-  # 
-  # 
-  # ig_fm100 <- raster::extract(fm100_yr, mtbs_fire_ig) %>%
-  #   pivot_longer(cols = -c(ID), names_to = "date_type") %>%
-  #   dplyr::rename(Row_ID = ID) %>%
-  #   mutate(num = as.numeric(str_sub(date_type, -5, -1))) %>%
-  #   mutate(date = num + lubridate::ymd("1900-01-01")) %>%
-  #   filter(date %in% DOB) %>%
-  #   arrange(Row_ID) %>%
-  #   dplyr::rename(FM100 = value, DATE_BURNED = date) %>%
-  #   mutate(FM10 = FM100*0.7) %>% # approximate FM10 ≈ 0.7*FM100 
-  #   mutate(FM1 = FM10*0.5) %>%   # approximate F1 ≈ 0.5*FM10
-  #   dplyr::select(FM1, FM10, FM100)
-  # 
-  # ig_fm1000 <- raster::extract(fm1000_yr, mtbs_fire_ig) %>%
-  #   pivot_longer(cols = -c(ID), names_to = "date_type") %>%
-  #   dplyr::rename(Row_ID = ID) %>%
-  #   mutate(num = as.numeric(str_sub(date_type, -5, -1))) %>%
-  #   mutate(date = num + lubridate::ymd("1900-01-01")) %>%
-  #   filter(date %in% DOB) %>%
-  #   arrange(Row_ID) %>%
-  #   dplyr::rename(FM1000 = value, DATE_BURNED = date) %>%
-  #   dplyr::select(FM1000)
-  # 
-  # ig_params <- cbind(ig_wind_speed_dir, ig_fm100, ig_fm1000)
-  # 
-  # 
-  # ig_params$FIRE_YEAR <- fire_year
-  # ig_params$FIRE_ID <- fire_id
-  
-  
   ## Save Landscape file in "MTT_Landscapes" so they can be converted into a .lcp files
   
-  writeRaster(landscape_raster_reprojected, here("intermediate","MTT_Landscapes",  paste0("fire", n, "_landscape.tif")), overwrite = TRUE)
-  
-  # writeRaster(landscape_raster_reprojected_alt, here("intermediate","MTT_Landscapes",  paste0("fire", n, "_landscape.tif")), overwrite = TRUE)
+  writeRaster(landscape_raster_reprojected, here("data", "intermediate","MTT_Landscapes",  paste0("fire", n, "_landscape.tif")), overwrite = TRUE)
   
   ## Save ignition to MTT_Inputs folder
   
-  st_write(ignition_sf, here("raw", "FB", "TestMTT", "MTT_Inputs", paste0("fire",n, "_ig.shp")), append = TRUE)
+  st_write(ignition_sf, here("data", "raw", "FB", "TestMTT", "MTT_Inputs", paste0("fire",n, "_ig.shp")), append = TRUE)
   
   
   ## Create & write in .input files for each fire
@@ -435,20 +371,12 @@ for (i in 1:nrow(fires_int_df)){
   )
   
   # Write the content to a file
-  writeLines(input_content, here("raw", "FB", "TestMTT", "MTT_Inputs", paste0("fire", n, ".input")))
+  writeLines(input_content, here("data", "raw", "FB", "TestMTT", "MTT_Inputs", paste0("fire", n, ".input")))
   
 }
 
 
-#### Print skipped rounds due to a lack of intersecting FACTS
-
-# # Print or inspect the skipped rounds
-# print(skipped_rounds)
-
-
-
-
-#### Now Create "simulateCMD.txt" which is command lines to be run in TestMTT
+#### Now Create "simulateCMD.txt" which is command lines to be run in the TestMTT software.
 
 # Number of fires
 N <- nrow(fires_int_df)
@@ -465,7 +393,7 @@ for (i in 1:N) {
 }
 
 # Write the lines to "simulateCMD.txt"
-writeLines(simulate_cmd_lines, here("raw", "FB", "TestMTT", "MTT_Inputs", "simulateCMD.txt"))
+writeLines(simulate_cmd_lines, here("data", "raw", "FB", "TestMTT", "MTT_Inputs", "simulateCMD.txt"))
 
 
 #### Now create "simulate.bat" which is the batch command to run the simulation
@@ -474,4 +402,4 @@ writeLines(simulate_cmd_lines, here("raw", "FB", "TestMTT", "MTT_Inputs", "simul
 bat_content <- "..\\..\\bin\\TestMTT simulateCmd.txt"
 
 # Write the content to "simulate.bat"
-writeLines(bat_content, here("raw", "FB", "TestMTT", "MTT_Inputs", "simulate.bat"))
+writeLines(bat_content, here("data", "raw", "FB", "TestMTT", "MTT_Inputs", "simulate.bat"))
