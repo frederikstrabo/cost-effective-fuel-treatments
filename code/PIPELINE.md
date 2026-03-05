@@ -19,7 +19,7 @@ Before running any scripts, please restore the required R packages by running:
     renv::restore()
 
 The scripts load required R packages programmatically. Package versions are
-managed exclusively via `renv`; users need not not install packages manually.
+managed exclusively via `renv`; users need not not install packages manually (with one notable exception explained in "Instructions for replicators" below).
 
 
 ## Platform notes
