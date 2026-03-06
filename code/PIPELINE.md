@@ -38,13 +38,14 @@ In addition, the FlamMap / Minimum Travel Time (MTT) simulations (Step 4) requir
 ## Instructions for replicators
 
 1. Unzip the replication package and open the file cost-effective-fuel-treatments.Rproj in RStudio.
-2. Restore the required R packages by running:
+2. Download the `data/raw` folder from [Dropbox](https://www.dropbox.com/scl/fo/zqr6hjnevb1rbe8ujhsr9/AFiVcwlgE1Lw6n1YMkw_gmQ?rlkey=w3o43q4dp7plrjsm6c2smlkas&st=mls2ph6r&dl=0). After downloading, place the contents of this folder in, `data/`.
+3. Restore the required R packages by running:
 
     ``install.packages("renv");
     renv::restore()``
 
-3. Manually install `rnaturalearthhires` (this is unable to be restored through `renv` due to it not being available on CRAN). See [rnaturalearthhires](https://docs.ropensci.org/rnaturalearthhires/) for more details on installation.
-4. Run scripts from `code/main.R` to execute the full replication pipeline.
+4. Manually install `rnaturalearthhires` (this is unable to be restored through `renv` due to it not being available on CRAN). See [rnaturalearthhires](https://docs.ropensci.org/rnaturalearthhires/) for more details on installation.
+5. Run scripts from `code/main.R` to execute the full replication pipeline.
 
 ## Replication paths
 
