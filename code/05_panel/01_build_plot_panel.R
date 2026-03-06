@@ -145,27 +145,27 @@ HUCount <- raster(here("data", "raw", "CommunitiesRisk", "CONUS", "HUCount_CONUS
 
 ###### LAT Drops 
 
-LAT_2017 <- st_read(here("data", "raw", "LAT_1", "drops17.shp")) %>% st_transform(crs = 5070)
+LAT_2017 <- st_read(here("data", "raw", "LAT", "drops17.shp")) %>% st_transform(crs = 5070)
 LAT_2017$YEAR <- 2017
 LAT_2017 <- dplyr::select(LAT_2017, YEAR)
 
-LAT_2018 <- st_read(here("data", "raw", "LAT_1", "drops18.shp")) %>% st_transform(crs = 5070)
+LAT_2018 <- st_read(here("data", "raw", "LAT", "drops18.shp")) %>% st_transform(crs = 5070)
 LAT_2018$YEAR <- 2018
 LAT_2018 <- dplyr::select(LAT_2018, YEAR)
 
-LAT_2019 <- st_read(here("data", "raw", "LAT_1", "drops19.shp")) %>% st_transform(crs = 5070)
+LAT_2019 <- st_read(here("data", "raw", "LAT", "drops19.shp")) %>% st_transform(crs = 5070)
 LAT_2019$YEAR <- 2019
 LAT_2019 <- dplyr::select(LAT_2019, YEAR)
 
-LAT_2020_2021 <- st_read(here("data", "raw", "LAT_1", "drops20_21.shp")) %>% st_transform(crs = 5070)
+LAT_2020_2021 <- st_read(here("data", "raw", "LAT", "drops20_21.shp")) %>% st_transform(crs = 5070)
 LAT_2020_2021 <- mutate(LAT_2020_2021, YEAR = localYear1)
 LAT_2020_2021 <- dplyr::select(LAT_2020_2021, YEAR)
 
-LAT_2022 <- st_read(here("data", "raw", "LAT_1", "2022_Full_Year_03112024_VLAT.shp")) %>% st_transform(crs = 5070)
+LAT_2022 <- st_read(here("data", "raw", "LAT", "2022_Full_Year_03112024_VLAT.shp")) %>% st_transform(crs = 5070)
 LAT_2022 <- mutate(LAT_2022, YEAR = Year)
 LAT_2022 <- dplyr::select(LAT_2022, YEAR)
 
-LAT_2023 <- st_read(here("data", "raw", "LAT_1", "2023_Full_Year_03112024_VLAT.shp")) %>% st_transform(crs = 5070)
+LAT_2023 <- st_read(here("data", "raw", "LAT", "2023_Full_Year_03112024_VLAT.shp")) %>% st_transform(crs = 5070)
 LAT_2023 <- mutate(LAT_2023, YEAR = Year)
 LAT_2023 <- dplyr::select(LAT_2023, YEAR)
 
