@@ -15,9 +15,11 @@ This GitHub repository contains the full codebase implementing the workflow from
 
 Due to size constraints raw input datasets are not stored directly in this GitHub repository.
 
-The full replication package, including all code and data necessary to reproduce the results in the paper, is archived at Zenodo:
+The replication package is archived at Zenodo:
 
 https://doi.org/10.5281/zenodo.18882334
+
+Users must also download the `data/raw` folder from [Dropbox](https://www.dropbox.com/scl/fo/zqr6hjnevb1rbe8ujhsr9/AFiVcwlgE1Lw6n1YMkw_gmQ?rlkey=w3o43q4dp7plrjsm6c2smlkas&st=mls2ph6r&dl=0). After downloading, place the contents of this folder in, `data/raw/` before running the replication scripts.
 
 ## Directory Structure
 
